@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}History{% endblock %}
+{% block content %}
+  <h2>Your Uploads</h2>
+  <ul>
+    {% for sig in signals %}
+      <li>{{ sig.uploaded_at }} – <a href="{{ sig.file.url }}">Download</a></li>
+    {% empty %}
+      <li>No uploads yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}
