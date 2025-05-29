@@ -171,7 +171,7 @@ To run the program locally:
 5. Activate the venv -> .\WEB_ECG_ENV\Scripts\activate.bat
 6. Install Django -> py -m pip install Django
 7. Install Colorama ->  py -m pip install "colorama >= 0.4.6"
-8. Install For signal analysis -> py -m pip install neurokit2 numpy
+8. Install For signal analysis -> py -m pip install neurokit2 numpy PyWavelets
 9. Install MySQLClient -> py -m pip install mysqlclient
 10. Still run migrations in order to create the SQL Database -> py -m manage makemigrations accounts ecg; py -m manage migrate
 11. Still in the working directory of this project run ->  py -m manage runserver
