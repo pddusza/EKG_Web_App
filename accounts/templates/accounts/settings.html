@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <title>Ustawienia</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .icon-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .icon-container:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            width: 100px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 5px 0;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.3s;
+            pointer-events: none;
+            font-size: 14px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        input[type="email"], input[type="password"] {
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="icon-container" title="Ustawienia">
+        <!-- Unicode ikonka użytkownika -->
+        <span style="font-size: 40px;">👤</span>
+        <div class="tooltip">Ustawienia</div>
+    </div>
+
+    <h2>Ustawienia konta</h2>
+
+<form method="post" action="">
+    {% csrf_token %}
+    <label for="email">Zmień adres email:</label>
+    <input type="email" id="email" name="email" placeholder="Nowy email" required>
+
+    <label for="password">Zmień hasło:</label>
+    <input type="password" id="password" name="password" placeholder="Nowe hasło" required>
+
+    <div style="margin-top: 20px;">
+        <!-- Ten przycisk wysyła formularz -->
+        <button type="submit" disabled title="Funkcja w przygotowaniu">Zapisz zmiany</button>
+
+        <!-- Ten przycisk cofa do mainscreen -->
+        <button type="button" onclick="window.location.href='{% url 'accounts:mainscreen' %}'" style="margin-left: 10px;">
+            Powrót do menu głównego
+        </button>
+    </div>
+</form>
+
+</body>
+</html>

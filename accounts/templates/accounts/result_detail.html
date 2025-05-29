@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analiza wyniku</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 100%;
+            box-sizing: border-box;
+            color: #333;
+        }
+        h1, h2 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        p, ul {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        ul li {
+            margin-bottom: 8px;
+        }
+        .download-btn, .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-right: 10px;
+            margin-top: 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .download-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .download-btn:hover {
+            background-color: #1e7e34;
+        }
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .back-btn:hover {
+            background-color: #565e64;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analiza wyniku: {{ result.title }}</h1>
+
+        <p><strong>Komentarz:</strong> {{ result.comment|default:"Brak komentarza" }}</p>
+        <p><strong>Wysłano:</strong> {{ result.uploaded_at|date:"Y-m-d H:i" }}</p>
+
+        <h2>Wyniki statystyczne</h2>
+        {% if stats.error %}
+            <p><em>Błąd analizy:</em> {{ stats.error }}</p>
+        {% else %}
+            <ul>
+                <li><strong>Liczba próbek:</strong> {{ stats.count }}</li>
+                <li><strong>Min:</strong> {{ stats.min }}</li>
+                <li><strong>Max:</strong> {{ stats.max }}</li>
+                <li><strong>Średnia:</strong> {{ stats.mean }}</li>
+            </ul>
+        {% endif %}
+
+        <h2>Wykres sygnału</h2>
+        <canvas id="signalChart" width="800" height="400"></canvas>
+
+        <a href="{{ result.csv_file.url }}" download class="download-btn">Pobierz oryginalny plik</a>
+        <a href="{% url 'accounts:your_results' %}" class="back-btn">← Powrót do listy wyników</a>
+    </div>
+
+    <!-- Embed sample data securely -->
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Parse the JSON-encoded sample array
+            var samples = [];
+            try {
+                samples = JSON.parse('{{ signal_json|escapejs }}');
+            } catch (e) {
+                console.error('Nie udało się wczytać próbek sygnału:', e);
+            }
+
+            // Initialize Chart.js
+            var ctx = document.getElementById('signalChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: samples.map(function(_, i) { return i + 1; }),
+                    datasets: [{
+                        label: 'ECG Signal',
+                        data: samples,
+                        fill: false,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: true, title: { display: true, text: 'Numer próbki' } },
+                        y: { display: true, title: { display: true, text: 'Amplituda' } }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>

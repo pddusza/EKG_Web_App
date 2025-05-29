@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Twoje wyniki</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #007bff;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        input[type="number"],
+        input[type="text"] {
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 12px 0;
+            font-weight: 600;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        a.back-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #6c757d;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+        a.back-btn:hover {
+            background-color: #565e64;
+        }
+        /* new styles for results list */
+        .results-list {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .result-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .result-item h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            color: #007bff;
+        }
+        .result-item p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+        .result-item a.download-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+        .result-item a.download-btn:hover {
+            background-color: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Twoje wyniki</h1>
+        <form method="get" action="">
+            <input type="number" name="record_number" placeholder="Filtruj po numerze rekordu" min="1" value="{{ request.GET.record_number }}">
+            <input type="text" name="name" placeholder="Filtruj po nazwie" value="{{ request.GET.name }}">
+            <button type="submit">Filtruj</button>
+        </form>
+
+        {# Begin results loop #}
+        {% if results %}
+            <div class="results-list">
+                {% for r in results %}
+                    <div class="result-item">
+                        <h2>
+                            <a href="{% url 'accounts:result_detail' r.id %}">
+                            {{ r.title }}
+                            </a>
+                        </h2>
+                        <p>{{ r.comment|default:"Brak komentarza" }}</p>
+                        <p>Wysłano: {{ r.uploaded_at|date:"Y-m-d H:i" }}</p>
+                        {# Analysis output #}
+                        {% if r.ml_stats %}
+                            {% if r.ml_stats.error %}
+                                <p><strong>Błąd analizy:</strong> {{ r.ml_stats.error }}</p>
+                            {% else %}
+                                <p><strong>Liczba próbek:</strong> {{ r.ml_stats.count }}</p>
+                                <p><strong>Min:</strong> {{ r.ml_stats.min }}</p>
+                                <p><strong>Max:</strong> {{ r.ml_stats.max }}</p>
+                                <p><strong>Średnia:</strong> {{ r.ml_stats.mean }}</p>
+                            {% endif %}
+                        {% else %}
+                            <p><em>Analiza niedostępna.</em></p>
+                        {% endif %}
+                        <a class="download-btn" href="{{ r.csv_file.url }}" download>Pobierz plik</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Brak wyników do wyświetlenia.</p>
+        {% endif %}
+        {# End results loop #}
+
+        <a href="{% url 'accounts:mainscreen' %}" class="back-btn">Powrót do ekranu głównego</a>
+    </div>
+</body>
+</html>

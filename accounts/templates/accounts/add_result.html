@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dodaj wynik</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 450px;
+            width: 100%;
+        }
+        h1 {
+            color: #007bff;
+            margin-bottom: 25px;
+            font-weight: 700;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #555;
+        }
+        input[type="text"],
+        input[type="file"],
+        textarea {
+            padding: 10px 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+        }
+        textarea {
+            min-height: 80px;
+        }
+        button, .btn-link {
+            cursor: pointer;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 12px 0;
+            font-weight: 600;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+        button:hover, .btn-link:hover {
+            background-color: #0056b3;
+        }
+        .btn-link {
+            background-color: #6c757d;
+            margin-top: 15px;
+        }
+        .btn-link:hover {
+            background-color: #565e64;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dodaj wynik</h1>
+        <form method="post" enctype="multipart/form-data" action="">
+            {% csrf_token %}
+            
+            <label for="title">Nazwa wyniku:</label>
+            <input type="text" id="title" name="title" placeholder="Podaj nazwę wyniku" required>
+
+            <label for="csv_file">Plik CSV:</label>
+            <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+
+            <label for="comment">Komentarz (opcjonalnie):</label>
+            <textarea id="comment" name="comment" placeholder="Dodaj komentarz..."></textarea>
+
+            <button type="submit">Dodaj</button>
+        </form>
+        <a href="{% url 'accounts:mainscreen' %}" class="btn-link">Powrót do ekranu głównego</a>
+    </div>
+</body>
+</html>
+

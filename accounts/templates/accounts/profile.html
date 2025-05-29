@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profil użytkownika</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 50px;
+            margin: 0;
+        }
+        .profile-container {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            width: 360px;
+            box-sizing: border-box;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #333;
+        }
+        form input[type="text"],
+        form input[type="email"],
+        form textarea {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        form input[type="text"]:focus,
+        form input[type="email"]:focus,
+        form textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        form button:hover {
+            background-color: #0056b3;
+        }
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto 15px auto;
+            border: 2px solid #007bff;
+        }
+        .back-link {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <h2>Twój profil</h2>
+        {% if profile.avatar %}
+            <img src="{{ profile.avatar }}" alt="Avatar" class="avatar-preview" />
+        {% else %}
+            <img src="https://via.placeholder.com/100?text=Avatar" alt="Avatar" class="avatar-preview" />
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Nazwa użytkownika" value="{{ user.username }}" required />
+            <input type="email" name="email" placeholder="Email" value="{{ user.email }}" required />
+            <input type="text" name="first_name" placeholder="Imię" value="{{ profile.first_name }}" />
+            <input type="text" name="last_name" placeholder="Nazwisko" value="{{ profile.last_name }}" />
+            <textarea name="bio" placeholder="Krótki opis / bio">{{ profile.bio }}</textarea>
+            <input type="text" name="avatar" placeholder="URL avatara" value="{{ profile.avatar }}" />
+            <button type="submit">Zapisz</button>
+        </form>
+        <a href="{% url 'accounts:mainscreen' %}" class="back-link">Powrót do ekranu głównego</a>
+    </div>
+</body>
+</html>
