@@ -81,36 +81,56 @@ def your_results_view(request):
 
 
 
+
+import math
+
+def _sanitize_for_json(obj):
+    """
+    Recursively replace any float that is NaN/Inf with None,
+    so that the resulting structure is valid JSON.
+    """
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_for_json(v) for v in obj]
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    return obj
+
 @login_required
 def add_result_view(request):
     if request.method == 'POST':
         form = CSVResultForm(request.POST, request.FILES)
         if form.is_valid():
-            # 1) save the CSVResult
+            # 1) Save the uploaded file record
             result = form.save(commit=False)
             result.owner = request.user
             result.save()
 
-            # 2) run ML analysis
-            stats = run_ecg_analysis(result.csv_file.path)
+            # 2) Run the ML pipeline
+            raw_stats = run_ecg_analysis(result.csv_file.path)
 
-            # 3) store stats on CSVResult
-            result.analysis = stats
+            # 3) Sanitize once (NaN/Inf → None)
+            clean_stats = _sanitize_for_json(raw_stats)
+
+            # 4) Persist JSON on CSVResult
+            result.analysis = clean_stats
             result.save()
 
-            # 4) mirror into the ecg app
+            # 5) Mirror into ecg app
             ecg_signal = ECGSignal.objects.create(
                 owner=request.user,
-                file=result.csv_file     # ← if your ECGSignal model uses a different field name, swap this
+                file=result.csv_file
             )
             AnalysisResult.objects.create(
                 signal=ecg_signal,
-                result_json=stats
+                result_json=clean_stats
             )
 
             return redirect('accounts:your_results')
     else:
         form = CSVResultForm()
+
     return render(request, 'accounts/add_result.html', {'form': form})
 
 
@@ -139,28 +159,35 @@ def your_results_view(request):
 
 @login_required
 def result_detail_view(request, pk):
-    # 1) fetch the CSVResult (or 404)
     result = get_object_or_404(CSVResult, pk=pk, owner=request.user)
 
-    # 2) load raw samples from the CSV file
+    # Read raw samples for plotting
     samples = []
     with open(result.csv_file.path, newline='') as f:
         reader = csv.reader(f)
         for row in reader:
-            # assume one column of floats; adjust if multiple cols
-            try:
-                samples.append(float(row[0]))
-            except (ValueError, IndexError):
-                continue
+            try: samples.append(float(row[0]))
+            except: pass
 
-    # 3) prepare JSON for Chart.js
     signal_json = json.dumps(samples)
 
-    # 4) stats are already in result.analysis
-    stats = result.analysis or {}
+    analysis     = result.analysis or {}
+    stats        = analysis.get('stats', {})
+    rpeaks       = analysis.get('rpeaks', [])
+    heart_rate   = analysis.get('heart_rate', [])
+    hrv_time     = analysis.get('hrv_time', {})
+    hrv_freq     = analysis.get('hrv_frequency', {})
+    hrv_nonlin   = analysis.get('hrv_nonlinear', {})
+    morphology   = analysis.get('morphology', {})
 
     return render(request, 'accounts/result_detail.html', {
-        'result': result,
-        'signal_json': signal_json,
-        'stats': stats,
+        'result':       result,
+        'signal_json':  signal_json,
+        'stats':        stats,
+        'rpeaks':       rpeaks,
+        'heart_rate':   heart_rate,
+        'hrv_time':     hrv_time,
+        'hrv_frequency':hrv_freq,
+        'hrv_nonlinear':hrv_nonlin,
+        'morphology':   morphology,
     })

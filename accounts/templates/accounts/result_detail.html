@@ -30,7 +30,12 @@
             color: #007bff;
             margin-bottom: 20px;
         }
-        p, ul {
+        h3 {
+            color: #0056b3;
+            margin-top: 30px;
+            margin-bottom: 10px;
+        }
+        p, ul, table {
             font-size: 14px;
             line-height: 1.6;
         }
@@ -40,6 +45,17 @@
         }
         ul li {
             margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
         }
         .download-btn, .back-btn {
             display: inline-block;
@@ -83,58 +99,97 @@
         <h2>Wyniki statystyczne</h2>
         {% if stats.error %}
             <p><em>Błąd analizy:</em> {{ stats.error }}</p>
-        {% else %}
-            <ul>
-                <li><strong>Liczba próbek:</strong> {{ stats.count }}</li>
-                <li><strong>Min:</strong> {{ stats.min }}</li>
-                <li><strong>Max:</strong> {{ stats.max }}</li>
-                <li><strong>Średnia:</strong> {{ stats.mean }}</li>
-            </ul>
         {% endif %}
+        {% if result.pipeline_error %}
+            <p style="color: darkred;"><strong>Pipeline error:</strong> {{ result.pipeline_error }}</p>
+        {% endif %}
+        <ul>
+            <li><strong>Liczba próbek:</strong> {{ stats.count }}</li>
+            <li><strong>Min:</strong> {{ stats.min }}</li>
+            <li><strong>Max:</strong> {{ stats.max }}</li>
+            <li><strong>Średnia:</strong> {{ stats.mean }}</li>
+        </ul>
 
         <h2>Wykres sygnału</h2>
         <canvas id="signalChart" width="800" height="400"></canvas>
+
+        <h2>Seria tętna</h2>
+        <canvas id="hrChart" width="800" height="200"></canvas>
+
+        <h3>HRV – metryki czasowe</h3>
+        <table>
+            <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
+            <tbody>
+                {% for key, val in hrv_time.items %}
+                <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>HRV – metryki częstotliwościowe</h3>
+        <table>
+            <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
+            <tbody>
+                {% for key, val in hrv_frequency.items %}
+                <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>HRV – metryki nieliniowe</h3>
+        <table>
+            <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
+            <tbody>
+                {% for key, val in hrv_nonlinear.items %}
+                <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Morfologia sygnału</h3>
+        <ul>
+            <li><strong>Średnie PR (ms):</strong> {{ morphology.pr_mean_ms }}</li>
+            <li><strong>Średnie QRS (ms):</strong> {{ morphology.qrs_mean_ms }}</li>
+            <li><strong>Średnie QT (ms):</strong> {{ morphology.qt_mean_ms }}</li>
+        </ul>
 
         <a href="{{ result.csv_file.url }}" download class="download-btn">Pobierz oryginalny plik</a>
         <a href="{% url 'accounts:your_results' %}" class="back-btn">← Powrót do listy wyników</a>
     </div>
 
-    <!-- Embed sample data securely -->
+    <!-- Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Render charts -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
-            // Parse the JSON-encoded sample array
+            // Parse data
             var samples = [];
-            try {
-                samples = JSON.parse('{{ signal_json|escapejs }}');
-            } catch (e) {
-                console.error('Nie udało się wczytać próbek sygnału:', e);
-            }
+            try { samples = JSON.parse('{{ signal_json|escapejs }}'); } catch (e) { console.error(e); }
+            var hrSeries = [];
+            try { hrSeries = JSON.parse('{{ heart_rate|escapejs }}'); } catch (e) { console.error(e); }
 
-            // Initialize Chart.js
-            var ctx = document.getElementById('signalChart').getContext('2d');
-            new Chart(ctx, {
+            // Signal chart
+            var ctx1 = document.getElementById('signalChart').getContext('2d');
+            new Chart(ctx1, {
                 type: 'line',
                 data: {
-                    labels: samples.map(function(_, i) { return i + 1; }),
-                    datasets: [{
-                        label: 'ECG Signal',
-                        data: samples,
-                        fill: false,
-                        borderWidth: 1
-                    }]
+                    labels: samples.map((_,i)=>i+1),
+                    datasets:[{ label:'ECG', data: samples, fill:false, borderWidth:1 }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: true, title: { display: true, text: 'Numer próbki' } },
-                        y: { display: true, title: { display: true, text: 'Amplituda' } }
-                    },
-                    interaction: { mode: 'index', intersect: false }
-                }
+                options:{ responsive:true, scales:{ x:{title:{display:true,text:'Numer próbki'}}, y:{title:{display:true,text:'Amplituda'}} } }
+            });
+
+            // Heart rate chart
+            var ctx2 = document.getElementById('hrChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: hrSeries.map((_,i)=>i+1),
+                    datasets:[{ label:'Heart Rate', data: hrSeries, fill:false, borderWidth:1 }]
+                },
+                options:{ responsive:true, scales:{ x:{title:{display:true,text:'Index'}}, y:{title:{display:true,text:'BPM'}} } }
             });
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
