@@ -34,7 +34,7 @@ class CSVResult(models.Model):
     csv_file     = models.FileField("Plik CSV", upload_to='csv_results/')
     comment      = models.TextField("Komentarz", blank=True)
     uploaded_at  = models.DateTimeField("Data wysłania", auto_now_add=True)
-    analysis     = models.JSONField("Analiza", null=True, blank=True)   # ← Add this line
+    analysis     = models.JSONField("Analiza", null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} ({self.owner.username})"

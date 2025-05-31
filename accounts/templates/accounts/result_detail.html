@@ -87,6 +87,90 @@
             border: 1px solid #e0e0e0;
             border-radius: 6px;
         }
+
+        /* ↓↓↓ New Styles for Classification Banner & Modal ↓↓↓ */
+
+        .normal-banner {
+            padding: 10px 14px;
+            border: 1px solid #4CAF50;
+            background: #e8f5e9;
+            color: #256029;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .abnormal-banner {
+            padding: 10px 14px;
+            border: 1px solid #f44336;
+            background: #ffebee;
+            color: #b71c1c;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .more-info-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .more-info-btn:hover {
+            background-color: #1565c0;
+        }
+        /* Modal overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none; /* hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        /* Modal content */
+        .modal-content {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        /* Close button inside modal */
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-size: 20px;
+            color: #333;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: #000;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .modal-content ul {
+            list-style: none;
+            padding: 0;
+        }
+        .modal-content ul li {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        /* ↑↑↑ End New Styles ↑↑↑ */
     </style>
 </head>
 <body>
@@ -109,6 +193,27 @@
             <li><strong>Max:</strong> {{ stats.max }}</li>
             <li><strong>Średnia:</strong> {{ stats.mean }}</li>
         </ul>
+
+        <!-- ↓↓↓ New Classification Block ↓↓↓ -->
+        {% if classification and not classification.error %}
+            {% with preds=classification.predictions %}
+                {% if preds|length == 1 and preds.0 == "NORM" %}
+                    <div class="normal-banner">
+                        ✔ Najbardziej prawdopodobna klasa: {{ preds.0 }}
+                    </div>
+                {% else %}
+                    <div class="abnormal-banner">
+                        ⚠ Najbardziej prawdopodobna klasa: {{ preds.0 }}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <button class="more-info-btn" id="open-modal">
+                Więcej informacji
+            </button>
+        {% endif %}
+        <!-- ↑↑↑ End Classification Block ↑↑↑ -->
+
 
         <h2>Wykres sygnału</h2>
         <canvas id="signalChart" width="800" height="400"></canvas>
@@ -157,9 +262,22 @@
         <a href="{% url 'accounts:your_results' %}" class="back-btn">← Powrót do listy wyników</a>
     </div>
 
+    <!-- ↓↓↓ New Modal Markup ↓↓↓ -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="close-modal">&times;</span>
+            <h3>Wszystkie prawdopodobieństwa klas</h3>
+            <ul>
+                {% for cls, prob in classification.probabilities.items %}
+                    <li><strong>{{ cls }}:</strong> {{ prob|floatformat:3 }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <!-- ↑↑↑ End Modal Markup ↑↑↑ -->
+
     <!-- Chart.js library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Render charts -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
             // Parse data
@@ -176,7 +294,13 @@
                     labels: samples.map((_,i)=>i+1),
                     datasets:[{ label:'ECG', data: samples, fill:false, borderWidth:1 }]
                 },
-                options:{ responsive:true, scales:{ x:{title:{display:true,text:'Numer próbki'}}, y:{title:{display:true,text:'Amplituda'}} } }
+                options:{ 
+                    responsive:true, 
+                    scales:{ 
+                        x:{title:{display:true,text:'Numer próbki'}}, 
+                        y:{title:{display:true,text:'Amplituda'}} 
+                    } 
+                }
             });
 
             // Heart rate chart
@@ -187,8 +311,39 @@
                     labels: hrSeries.map((_,i)=>i+1),
                     datasets:[{ label:'Heart Rate', data: hrSeries, fill:false, borderWidth:1 }]
                 },
-                options:{ responsive:true, scales:{ x:{title:{display:true,text:'Index'}}, y:{title:{display:true,text:'BPM'}} } }
+                options:{ 
+                    responsive:true, 
+                    scales:{ 
+                        x:{title:{display:true,text:'Index'}}, 
+                        y:{title:{display:true,text:'BPM'}} 
+                    } 
+                }
             });
+
+            // ↓↓↓ Modal functionality ↓↓↓
+            var openBtn = document.getElementById('open-modal');
+            var closeBtn = document.getElementById('close-modal');
+            var modalOverlay = document.getElementById('modal-overlay');
+
+            if (openBtn && modalOverlay) {
+                openBtn.addEventListener('click', function() {
+                    modalOverlay.style.display = 'flex';
+                });
+            }
+            if (closeBtn && modalOverlay) {
+                closeBtn.addEventListener('click', function() {
+                    modalOverlay.style.display = 'none';
+                });
+            }
+            // Close when clicking outside modal-content
+            if (modalOverlay) {
+                modalOverlay.addEventListener('click', function(e) {
+                    if (e.target === modalOverlay) {
+                        modalOverlay.style.display = 'none';
+                    }
+                });
+            }
+            // ↑↑↑ End Modal functionality ↑↑↑
         });
     </script>
 </body>

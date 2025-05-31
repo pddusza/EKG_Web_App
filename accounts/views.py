@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from .forms                      import CustomUserCreationForm, CSVResultForm
 from .models import CSVResult
 from ecg.models            import ECGSignal, AnalysisResult
-from ecg.ml                import run_ecg_analysis
+from ecg.ml                import run_ecg_analysis, predict_from_csv
 import csv
 import json
 
@@ -107,17 +107,30 @@ def add_result_view(request):
             result.owner = request.user
             result.save()
 
-            # 2) Run the ML pipeline
+            # 2) Run NeuroKit2 analysis
             raw_stats = run_ecg_analysis(result.csv_file.path)
 
-            # 3) Sanitize once (NaN/Inf → None)
+            # 3) Run TensorFlow/Keras classification on same CSV
+            #    We wrap in try/except so that any classification error
+            #    doesn’t block saving NeuroKit2 results.
+            try:
+                classification = predict_from_csv(result.csv_file.path)
+            except Exception as e:
+                # On model‐loading or shape‐mismatch errors, store error message
+                classification = {'error': str(e)}
+
+            # 4) Merge classification into the same stats dict
+            raw_stats['classification'] = classification
+
+            # 5) Sanitize entire JSON (replacing NaN/Inf→None)
             clean_stats = _sanitize_for_json(raw_stats)
 
-            # 4) Persist JSON on CSVResult
+            # 6) Persist JSON on CSVResult
             result.analysis = clean_stats
             result.save()
 
-            # 5) Mirror into ecg app
+            # 7) Mirror into ecg app:
+            # Create AnalysisResult using the same clean_stats (which now includes 'classification')
             ecg_signal = ECGSignal.objects.create(
                 owner=request.user,
                 file=result.csv_file
@@ -179,6 +192,7 @@ def result_detail_view(request, pk):
     hrv_freq     = analysis.get('hrv_frequency', {})
     hrv_nonlin   = analysis.get('hrv_nonlinear', {})
     morphology   = analysis.get('morphology', {})
+    classification = analysis.get('classification', {})
 
     return render(request, 'accounts/result_detail.html', {
         'result':       result,
@@ -190,4 +204,5 @@ def result_detail_view(request, pk):
         'hrv_frequency':hrv_freq,
         'hrv_nonlinear':hrv_nonlin,
         'morphology':   morphology,
+        'classification': classification,
     })

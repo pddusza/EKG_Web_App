@@ -144,6 +144,27 @@
                                    {{ r.ml_stats.stats.max }}</p>
                                 <p><strong>Średnia:</strong>
                                    {{ r.ml_stats.stats.mean }}</p>
+
+
+                                   
+                                {% if r.ml_stats.classification and not r.ml_stats.classification.error %}
+                                    {% with preds=r.ml_stats.classification.predictions %}
+                                        {% if preds|length == 1 and preds.0 == "NORM" %}
+                                            <!-- GREEN banner for Normal ECG -->
+                                            <div style="padding: 8px 12px; border: 1px solid #4CAF50; background: #e8f5e9; color: #256029; margin-top: 12px; border-radius: 4px;">
+                                                <strong>✔ Normalne EKG</strong> ({{ preds.0 }})
+                                            </div>
+                                        {% else %}
+                                            <!-- RED banner for Abnormal ECG -->
+                                            <div style="padding: 8px 12px; border: 1px solid #f44336; background: #ffebee; color: #b71c1c; margin-top: 12px; border-radius: 4px;">
+                                                <strong>⚠ Nieprawidłowe EKG</strong><br>
+                                                Predykcja: {{ preds|join:", " }}
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+
+
                             {% endif %}
                         {% else %}
                             <p><em>Analiza niedostępna.</em></p>

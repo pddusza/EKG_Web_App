@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import UploadECGForm
 from .models import ECGSignal, AnalysisResult
-from .ml import run_ecg_analysis
+from .ml import run_ecg_analysis, predict_from_csv
 
 @login_required
 def upload_ecg(request):
@@ -17,13 +17,20 @@ def upload_ecg(request):
             # 2) run your ML helper
             stats = run_ecg_analysis(ecg.file.path)
 
-            # 3) persist the analysis results
+            # 3) run TensorFlow/Keras classification
+            try:
+                classification = predict_from_csv(ecg.file.path)
+                stats['classification'] = classification
+            except Exception as e:
+                stats['classification'] = {'error': str(e)}
+
+            # 4) persist the analysis results
             AnalysisResult.objects.create(
                 signal=ecg,
                 result_json=stats
-            )  # <-- creates a row in ecg_analysisresult
+            )
 
-            # 4) redirect to history (or wherever you want)
+            # 5) redirect to history (or wherever you want)
             return redirect('ecg:history')
     else:
         form = UploadECGForm()
