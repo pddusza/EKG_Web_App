@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Main Screen</title>
+    <title>EKG Analityka – Ekran Główny</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -34,67 +34,94 @@
         nav a:hover {
             color: #cce4ff;
         }
+
         main {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 40px auto;
             background: white;
-            padding: 30px 40px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.08);
             text-align: center;
         }
+
         main h2 {
             margin-top: 0;
-            font-weight: 600;
+            font-weight: 700;
+            color: #007bff;
+            font-size: 28px;
+        }
+
+        .intro-text {
+            margin-top: 10px;
+            font-size: 17px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .tile-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .tile {
+            background-color: #f8f9fa;
+            padding: 30px 25px;
+            width: 250px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-align: center;
+        }
+
+        .tile:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+
+        .tile h3 {
+            margin-top: 0;
+            font-size: 20px;
             color: #007bff;
         }
-        .content-section {
-            margin-top: 20px;
-            font-size: 16px;
-            line-height: 1.5;
+
+        .tile p {
+            font-size: 14px;
             color: #555;
-        }
-        /* Style dla przycisków */
-        .btn {
-            display: inline-block;
-            background-color: #007bff;
-            color: white;
-            padding: 15px 30px;
-            margin: 15px 10px;
-            font-size: 18px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-        }
-        .btn:hover {
-            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Tutaj kiedyś będzie bardzo fajna nazwa</h1>
+        <h1>ECG Analtic</h1>
         <nav>
             <a href="{% url 'accounts:profile' %}">Profil</a>
-            <a href="{% url 'accounts:settings' %}" title="Ustawienia" style="text-decoration:none; font-size: 24px;">
-                👤
-            </a>
+            <a href="{% url 'accounts:settings' %}" title="Ustawienia" style="text-decoration:none; font-size: 24px;">⚙️</a>
             <a href="{% url 'accounts:logout' %}">Wyloguj się</a>
         </nav>
     </header>
     <main>
-        <h2>Witamy na ekranie głównym</h2>
-        <div class="content-section">
-            <p>Tu w przyszłości będą dostępne różne funkcjonalności aplikacji.</p>
-            <p>Na przykład dashboard, powiadomienia, statystyki i inne.</p>
+        <h2>Witamy w systemie analizy EKG</h2>
+        <p class="intro-text">
+            Tutaj możesz zarządzać swoimi wynikami, dodawać nowe pomiary i przeglądać analizy. 
+        </p>
 
-            <!-- Przyciski -->
-	    <a href="{% url 'accounts:add_result' %}"  class="btn">Dodaj wynik</a>
-	    <a href="{% url 'accounts:your_results' %}" class="btn">Twoje wyniki</a>
+        <div class="tile-container">
+            <a href="{% url 'accounts:add_result' %}" class="tile">
+                <h3>➕ Dodaj wynik</h3>
+                <p>Prześlij nowe EKG do analizy.</p>
+            </a>
+            <a href="{% url 'accounts:your_results' %}" class="tile">
+                <h3>📋 Twoje wyniki</h3>
+                <p>Przeglądaj i filtruj zapisane analizy.</p>
+            </a>
         </div>
     </main>
 </body>
 </html>
+

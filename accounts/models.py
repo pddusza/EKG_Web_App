@@ -17,16 +17,16 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)
     instance.profile.save()
 
-class CSVResult(models.Model):
-    owner    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title    = models.CharField(max_length=200)
-    csv_file = models.FileField(upload_to='csv_results/')
-    comment  = models.TextField(blank=True)
-    analysis    = models.JSONField("Analiza", null=True, blank=True)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.title} by {self.owner.username}"
+#class CSVResult(models.Model):
+#    owner    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#    title    = models.CharField(max_length=200)
+#    csv_file = models.FileField(upload_to='csv_results/')
+#    comment  = models.TextField(blank=True)
+#    analysis    = models.JSONField("Analiza", null=True, blank=True)
+#    uploaded_at = models.DateTimeField(auto_now_add=True)
+#
+#    def __str__(self):
+#        return f"{self.title} by {self.owner.username}"
 
 class CSVResult(models.Model):
     owner        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

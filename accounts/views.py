@@ -9,7 +9,7 @@ from ecg.models            import ECGSignal, AnalysisResult
 from ecg.ml                import run_ecg_analysis, predict_from_csv
 import csv
 import json
-
+from django.core.paginator import Paginator
 
 
 
@@ -146,13 +146,22 @@ def add_result_view(request):
 
     return render(request, 'accounts/add_result.html', {'form': form})
 
-
 @login_required
 def your_results_view(request):
     qs = CSVResult.objects.filter(owner=request.user).order_by('-uploaded_at')
+
+    record_number = request.GET.get('record_number')
+    name_filter = request.GET.get('name')
+    page = request.GET.get('page', 1)  # numer strony
+
+    if name_filter:
+        qs = qs.filter(title__icontains=name_filter)
+
     results = []
+    page_number = request.GET.get('page', '1')
+
+
     for r in qs:
-        # try to find the matching ECGSignal
         try:
             ecg = ECGSignal.objects.get(file=r.csv_file.name, owner=request.user)
             ar = AnalysisResult.objects.filter(signal=ecg).order_by('-id').first()
@@ -160,14 +169,37 @@ def your_results_view(request):
         except ECGSignal.DoesNotExist:
             analysis = None
 
-        # temporarily attach it
         r.ml_stats = analysis
         results.append(r)
 
-    return render(request, 'accounts/your_results.html', {
-        'results': results,
-    })
+    # Filtrowanie po numerze rekordu (priorytetowe)
+    if record_number:
+        try:
+            index = int(record_number) - 1
+            if 0 <= index < len(results):
+                results = [results[index]]
+                page = None  # ukrywamy paginację w tym przypadku
+            else:
+                results = []
+        except ValueError:
+            results = []
+        return render(request, 'accounts/your_results.html', {
+            'results': results,
+            'page_obj': None,
+            'page': None,
+        })
 
+    # Paginacja: 3 wyniki na stronę
+    paginator = Paginator(results, 3)
+    page_obj = paginator.get_page(page)
+    offset = (page_obj.number - 1) * 3
+
+    return render(request, 'accounts/your_results.html', {
+        'results': page_obj.object_list,
+        'page_obj': page_obj,
+        'current_page': page_obj.number,
+        'offset': offset,
+    })
 
 
 @login_required
