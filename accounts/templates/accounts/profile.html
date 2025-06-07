@@ -1,107 +1,246 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Profil użytkownika</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f4f8;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding-top: 50px;
-            margin: 0;
-        }
-        .profile-container {
-            background: white;
-            padding: 30px 40px;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            width: 360px;
-            box-sizing: border-box;
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 24px;
-            color: #333;
-        }
-        form input[type="text"],
-        form input[type="email"],
-        form textarea {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 18px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 15px;
-            transition: border-color 0.3s ease;
-            box-sizing: border-box;
-            resize: vertical;
-        }
-        form input[type="text"]:focus,
-        form input[type="email"]:focus,
-        form textarea:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-        form button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        form button:hover {
-            background-color: #0056b3;
-        }
-        .avatar-preview {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
-            margin: 0 auto 15px auto;
-            border: 2px solid #007bff;
-        }
-        .back-link {
-            display: block;
-            margin-top: 15px;
-            text-align: center;
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profil użytkownika</title>
+  <style>
+    /* Container & typography */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      padding-top: 50px;
+      margin: 0;
+    }
+    .profile-container {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 360px;
+      box-sizing: border-box;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 24px;
+      color: #333;
+    }
+
+    /* Standard form fields */
+    form input[type="text"],
+    form input[type="email"],
+    form textarea,
+    form input[type="file"] {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 18px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 15px;
+      transition: border-color 0.3s ease;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+    form input:focus,
+    form textarea:focus,
+    form input[type="file"]:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+    form button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Error list */
+    .errorlist {
+      color: #b00020;
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px 0;
+    }
+
+    /* Current avatar preview */
+    .avatar-preview {
+      display: block;
+      margin: 0 auto 15px auto;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #007bff;
+    }
+
+    /* Crop‐editor UI */
+    .crop-frame {
+      width: 120px; height: 120px;
+      margin: 0 auto 10px;
+      border: 2px dashed #007bff;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+    }
+    #avatarEditor {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform-origin: center center;
+      transform: translate(-50%, -50%) scale(1);
+      cursor: move; user-select: none;
+      transition: transform 0.1s;
+    }
+    #scaleSlider { width: 100%; margin-bottom: 18px; }
+    .errorlist { color: #b00020; list-style: none; padding: 0; margin: 0 0 12px; }
+  </style>
 </head>
 <body>
-    <div class="profile-container">
-        <h2>Twój profil</h2>
-        {% if profile.avatar %}
-            <img src="{{ profile.avatar }}" alt="Avatar" class="avatar-preview" />
-        {% else %}
-            <img src="https://via.placeholder.com/100?text=Avatar" alt="Avatar" class="avatar-preview" />
-        {% endif %}
-        <form method="post">
-            {% csrf_token %}
-            <input type="text" name="username" placeholder="Nazwa użytkownika" value="{{ user.username }}" required />
-            <input type="email" name="email" placeholder="Email" value="{{ user.email }}" required />
-            <input type="text" name="first_name" placeholder="Imię" value="{{ profile.first_name }}" />
-            <input type="text" name="last_name" placeholder="Nazwisko" value="{{ profile.last_name }}" />
-            <textarea name="bio" placeholder="Krótki opis / bio">{{ profile.bio }}</textarea>
-            <input type="text" name="avatar" placeholder="URL avatara" value="{{ profile.avatar }}" />
-            <button type="submit">Zapisz</button>
-        </form>
-        <a href="{% url 'accounts:mainscreen' %}" class="back-link">Powrót do ekranu głównego</a>
+  <div class="profile-container">
+    <h2>Twój profil</h2>
+
+    {% if form.non_field_errors %}
+      <ul class="errorlist">
+        {% for err in form.non_field_errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <!-- Crop editor -->
+    <div class="crop-frame">
+      <img id="avatarEditor"
+           src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'avatars_users/default.png' %}{% endif %}"
+           alt="Podgląd avatara" />
     </div>
+    <input type="range" id="scaleSlider" min="50" max="150" value="100">
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div>
+        {{ form.username.label_tag }}<br>
+        {{ form.username }}<br>
+        {{ form.username.errors }}
+      </div>
+      <div>
+        {{ form.email.label_tag }}<br>
+        {{ form.email }}<br>
+        {{ form.email.errors }}
+      </div>
+      <div>
+        {{ form.first_name.label_tag }}<br>
+        {{ form.first_name }}<br>
+        {{ form.first_name.errors }}
+      </div>
+      <div>
+        {{ form.last_name.label_tag }}<br>
+        {{ form.last_name }}<br>
+        {{ form.last_name.errors }}
+      </div>
+      <div>
+        {{ form.bio.label_tag }}<br>
+        {{ form.bio }}<br>
+        {{ form.bio.errors }}
+      </div>
+
+      <!-- Current small preview -->
+      <div>
+        <label>Obecny avatar</label><br>
+        <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'avatars_users/default.png' %}{% endif %}"
+             class="avatar-preview" alt="Avatar" />
+      </div>
+
+      <!-- Upload new avatar -->
+      <div>
+        {{ form.avatar_upload.label_tag }}<br>
+        {{ form.avatar_upload }}<br>
+        {{ form.avatar_upload.errors }}
+      </div>
+
+      <!-- Hidden crop fields -->
+      <input type="hidden" name="offsetX" id="offsetX" value="0">
+      <input type="hidden" name="offsetY" id="offsetY" value="0">
+      <input type="hidden" name="scale"   id="scale"   value="1">
+
+      <button type="submit">Zapisz</button>
+    </form>
+
+    <a href="{% url 'accounts:mainscreen' %}" class="back-link">
+      Powrót do ekranu głównego
+    </a>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const editor    = document.getElementById('avatarEditor');
+      const slider    = document.getElementById('scaleSlider');
+      // Select by name since Django auto-IDs the file input
+      const fileInput = document.querySelector('input[name="avatar_upload"]');
+      const form      = document.querySelector('form');
+      const inputX    = document.getElementById('offsetX');
+      const inputY    = document.getElementById('offsetY');
+      const inputS    = document.getElementById('scale');
+      let isDragging = false, startX=0, startY=0, offX=0, offY=0;
+
+      function updateTransform(){
+        const s = slider.value / 100;
+        editor.style.transform = 
+          `translate(calc(-50% + ${offX}px), calc(-50% + ${offY}px)) scale(${s})`;
+      }
+
+      // File upload preview
+      fileInput.addEventListener('change', () => {
+        const f = fileInput.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          editor.src = e.target.result;
+          offX = offY = 0;
+          slider.value = 100;
+          updateTransform();
+        };
+        reader.readAsDataURL(f);
+      });
+
+      // Zoom
+      slider.addEventListener('input', updateTransform);
+
+      // Pan start
+      editor.parentElement.addEventListener('mousedown', e => {
+        isDragging = true;
+        startX = e.clientX; startY = e.clientY;
+      });
+      // Pan move
+      document.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        offX += dx; offY += dy;
+        startX = e.clientX; startY = e.clientY;
+        updateTransform();
+      });
+      // Pan end
+      document.addEventListener('mouseup', () => isDragging = false);
+
+      // On submit, stash crop params
+      form.addEventListener('submit', () => {
+        inputX.value = offX;
+        inputY.value = offY;
+        inputS.value = slider.value / 100;
+      });
+    });
+  </script>
 </body>
 </html>

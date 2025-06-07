@@ -1,9 +1,11 @@
+import os, io, uuid
+from django.conf                 import settings
 from django.shortcuts            import render, redirect, get_object_or_404
 from django.contrib.auth         import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.forms   import AuthenticationForm, UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .forms                      import CustomUserCreationForm, CSVResultForm
+from .forms                      import CustomUserCreationForm, CSVResultForm, ProfileForm
 from .models import CSVResult
 from ecg.models            import ECGSignal, AnalysisResult
 from ecg.ml                import run_ecg_analysis, predict_from_csv
@@ -11,6 +13,8 @@ import csv
 import json
 from django.core.paginator import Paginator
 from .models                    import Profile
+from PIL                 import Image
+from django.core.files.base    import ContentFile
 
 app_name = 'accounts'
 
@@ -45,24 +49,94 @@ def user_logout(request):
     return redirect('accounts:login')
 
 
+@login_required
 def profile_view(request):
-    user = request.user
+    user    = request.user
     profile = user.profile
+
     if request.method == 'POST':
-        # Aktualizacja danych
-        user.username = request.POST.get('username', user.username)
-        user.email = request.POST.get('email', user.email)
-        profile.first_name = request.POST.get('first_name', profile.first_name)
-        profile.last_name = request.POST.get('last_name', profile.last_name)
-        profile.bio = request.POST.get('bio', profile.bio)
-        profile.avatar = request.POST.get('avatar', profile.avatar)
-        user.save()
-        profile.save()
-        return redirect('mainscreen')
+        form = ProfileForm(
+            request.POST, request.FILES,
+            instance=profile
+        )
+        if form.is_valid():
+            # 1) Update User fields
+            user.username = form.cleaned_data['username']
+            user.email    = form.cleaned_data['email']
+            user.save()
+
+            # 2) Save Profile text fields
+            profile = form.save(commit=False)
+
+            # 3) If a new file uploaded, assign it; otherwise keep existing
+            avatar_file = form.cleaned_data.get('avatar_upload')
+            if avatar_file:
+                profile.avatar = avatar_file
+                profile.save()
+            else:
+                # ensure the field is saved so .path is valid
+                profile.save()
+
+            # 4) Always crop & save according to posted offsets & scale
+            offsetX = form.cleaned_data['offsetX']
+            offsetY = form.cleaned_data['offsetY']
+            scale   = form.cleaned_data['scale']
+            _crop_and_save(profile, offsetX, offsetY, scale)
+
+            # 5) Persist the final avatar path
+            profile.save()
+
+            return redirect('accounts:mainscreen')
+    else:
+        initial = {
+            'username':  user.username,
+            'email':     user.email,
+            'offsetX':   0,
+            'offsetY':   0,
+            'scale':     1.0,
+        }
+        form = ProfileForm(initial=initial, instance=profile)
+
     return render(request, 'accounts/profile.html', {
-        'user': user,
+        'form':    form,
         'profile': profile,
     })
+
+def _crop_and_save(profile, offsetX, offsetY, scale):
+    """
+    Open profile.avatar, resize and crop to 120×120, then
+    overwrite profile.avatar with a new UUID file in avatars_users.
+    """
+    img_path = profile.avatar.path
+    with Image.open(img_path) as img:
+        # 1) Resize
+        new_w = int(img.width * scale)
+        new_h = int(img.height * scale)
+        img = img.resize((new_w, new_h), Image.LANCZOS)
+
+        # 2) Centered crop box + offsets
+        frame = 120
+        cx = new_w//2 + offsetX
+        cy = new_h//2 + offsetY
+        left   = max(0, cx - frame//2)
+        top    = max(0, cy - frame//2)
+        right  = min(new_w, left + frame)
+        bottom = min(new_h, top  + frame)
+        cropped = img.crop((left, top, right, bottom))
+
+        # 3) Write into buffer
+        buf = io.BytesIO()
+        cropped.save(buf, format='PNG')
+        buf.seek(0)
+
+        # 4) New UUID file path
+        fname = f"{uuid.uuid4().hex}.png"
+
+        # 5) Remove old file & save new one
+        profile.avatar.delete(save=False)
+        profile.avatar.save(fname,ContentFile(buf.read()),save=False)
+
+
 
 
 def settings_view(request):
@@ -82,18 +156,49 @@ def account_type_view(request):
 
 def register_patient_view(request):
     if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
-            # populate profile fields
-            p = user.profile
-            p.first_name      = form.cleaned_data['first_name']
-            p.last_name       = form.cleaned_data['last_name']
-            p.pesel           = form.cleaned_data['pesel']
-            p.birth_date      = form.cleaned_data['birth_date']
-            p.medical_history = form.cleaned_data['medical_history']
-            # privileges stay: is_patient=True
-            p.save()
+            # 1) Create user & get profile
+            user    = form.save()
+            profile = user.profile
+
+            # 2) Populate patient fields...
+            profile.first_name      = form.cleaned_data['first_name']
+            profile.last_name       = form.cleaned_data['last_name']
+            profile.pesel           = form.cleaned_data['pesel']
+            profile.birth_date      = form.cleaned_data['birth_date']
+            profile.medical_history = form.cleaned_data['medical_history']
+            profile.save()
+
+            # 3) Determine raw avatar content: upload or stock
+            upload = form.cleaned_data['avatar_upload']
+            choice = form.cleaned_data['avatar_choice']
+            if upload:
+                raw = upload.read()
+                ext = os.path.splitext(upload.name)[1]
+            else:
+                # stock path must include the avatars folder
+                stock_path = os.path.join(settings.MEDIA_ROOT, 'avatars', choice)
+                with open(stock_path, 'rb') as f:
+                    raw = f.read()
+                ext = os.path.splitext(choice)[1]
+
+            # 2) Save raw into avatars_users/<uuid>.ext
+            fname = f"{uuid.uuid4().hex}{ext}"
+            profile.avatar.save(fname, ContentFile(raw), save=False)
+            profile.save()
+
+            # 3) Crop per hidden inputs
+            try:
+                scale   = float(request.POST.get('scale', 1.0))
+                offsetX = int(request.POST.get('offsetX', 0))
+                offsetY = int(request.POST.get('offsetY', 0))
+            except ValueError:
+                scale, offsetX, offsetY = 1.0, 0, 0
+
+            _crop_and_save(profile, offsetX, offsetY, scale)
+            profile.save()
+
             auth_login(request, user)
             return redirect("accounts:login")
     else:
@@ -103,25 +208,89 @@ def register_patient_view(request):
 
 def register_doctor_view(request):
     if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
-            p = user.profile
-            p.first_name     = form.cleaned_data['first_name']
-            p.last_name      = form.cleaned_data['last_name']
-            p.license_number = form.cleaned_data['license_number']
-            p.bio            = form.cleaned_data['bio']
-            # set doctor+admin for now
-            p.is_patient = False
-            p.is_doctor  = True
-            p.is_admin   = True
-            p.save()
+            # 1) Create user & get profile
+            user    = form.save()
+            profile = user.profile
+
+            # 2) Populate doctor fields...
+            profile.first_name     = form.cleaned_data['first_name']
+            profile.last_name      = form.cleaned_data['last_name']
+            profile.license_number = form.cleaned_data['license_number']
+            profile.bio            = form.cleaned_data['bio']
+            # mark roles
+            profile.is_patient = False
+            profile.is_doctor  = True
+            profile.is_admin   = True
+            profile.save()
+
+            # 3) Determine raw avatar bytes
+            upload = form.cleaned_data['avatar_upload']
+            choice = form.cleaned_data['avatar_choice']
+            if upload:
+                raw = upload.read()
+                ext = os.path.splitext(upload.name)[1]
+            else:
+                stock_path = os.path.join(settings.MEDIA_ROOT, 'avatars', choice)
+                with open(stock_path, 'rb') as f:
+                    raw = f.read()
+                ext = os.path.splitext(choice)[1]
+
+            fname = f"{uuid.uuid4().hex}{ext}"
+            profile.avatar.save(fname, ContentFile(raw), save=False)
+            profile.save()
+
+            try:
+                scale   = float(request.POST.get('scale', 1.0))
+                offsetX = int(request.POST.get('offsetX', 0))
+                offsetY = int(request.POST.get('offsetY', 0))
+            except ValueError:
+                scale, offsetX, offsetY = 1.0, 0, 0
+
+            _crop_and_save(profile, offsetX, offsetY, scale)
+            profile.save()
+
             auth_login(request, user)
             return redirect("accounts:login")
     else:
         form = CustomUserCreationForm()
     return render(request, "accounts/register_doctor.html", {"form": form})
 
+
+def _handle_avatar_crop(profile, offsetX, offsetY, scale):
+    """
+    Crop & resize the avatar to 120×120, then
+    save it as a new file under media/avatars with a UUID name.
+    """
+    # Open either the uploaded image or the stock icon
+    img_path = profile.avatar.path
+    with Image.open(img_path) as img:
+        # 🛠 Resize
+        new_size = (int(img.width * scale), int(img.height * scale))
+        img = img.resize(new_size, Image.LANCZOS)
+
+        # 🛠 Compute crop box (center + offsets)
+        frame = 120
+        cx = new_size[0] // 2 + offsetX
+        cy = new_size[1] // 2 + offsetY
+        left   = max(0, cx - frame//2)
+        top    = max(0, cy - frame//2)
+        right  = min(new_size[0], left + frame)
+        bottom = min(new_size[1], top  + frame)
+        cropped = img.crop((left, top, right, bottom))
+
+        # 🛠 Write to in-memory buffer
+        buffer = io.BytesIO()
+        cropped.save(buffer, format='PNG')
+        buffer.seek(0)
+
+        # 🛠 Create a new UUID filename
+        filename = f"avatars/{uuid.uuid4().hex}.png"
+
+        # 🛠 Save via Django storage and assign to profile
+        file_content = ContentFile(buffer.read())
+        profile.avatar.save(filename, file_content, save=False)
 
 
 

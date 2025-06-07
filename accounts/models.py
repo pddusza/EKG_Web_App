@@ -6,7 +6,11 @@ from django.conf import settings
 
 class Profile(models.Model):
     user             = models.OneToOneField(User, on_delete=models.CASCADE)
-    avatar           = models.URLField(blank=True, null=True)
+    avatar           = models.ImageField(
+                        upload_to='avatars/avatars_users/',
+                        default='avatars/default.png',
+                        blank=True
+                    )
     first_name       = models.CharField(max_length=30, blank=True)
     last_name        = models.CharField(max_length=30, blank=True)
 
