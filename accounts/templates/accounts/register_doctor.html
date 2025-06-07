@@ -23,15 +23,8 @@
       width: 360px;
       box-sizing: border-box;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 24px;
-      color: #333;
-    }
-    form input[type="text"],
-    form input[type="email"],
-    form input[type="password"],
-    form textarea {
+    h2 { text-align: center; margin-bottom: 24px; color: #333; }
+    form input, form textarea {
       width: 100%;
       padding: 12px 15px;
       margin-bottom: 6px;
@@ -41,8 +34,7 @@
       transition: border-color 0.3s ease;
       box-sizing: border-box;
     }
-    form input:focus,
-    form textarea:focus {
+    form input:focus, form textarea:focus {
       border-color: #007bff;
       outline: none;
     }
@@ -59,88 +51,18 @@
       transition: background-color 0.3s ease;
       margin-top: 12px;
     }
-    form button:hover {
-      background-color: #0056b3;
-    }
+    form button:hover { background-color: #0056b3; }
     .errorlist {
       color: #b00020;
-      margin: 0 0 12px 0;
       list-style: none;
+      margin: 0 0 12px 0;
       padding-left: 0;
     }
     .icon-grid {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .icon-grid label {
-      cursor: pointer;
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
     }
     .icon-grid img {
-      width: 60px;
-      height: 60px;
-      border: 2px solid transparent;
-      border-radius: 5px;
-    }
-    input[type=radio]:checked + img {
-      border-color: #007bff;
-    }
-    .links {
-      text-align: center;
-      margin-top: 20px;
-      color: #555;
-      font-size: 14px;
-    }
-    .links a {
-      color: #007bff;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .links a:hover {
-      text-decoration: underline;
-    }
-
-
-    #preview-container {
-      text-align: center;
-      margin: 15px 0;
-    }
-    .crop-frame {
-    width: 120px;
-    height: 120px;
-    margin: 15px auto;
-    border: 2px dashed #007bff;
-    border-radius: 50%;
-    overflow: hidden;
-    position: relative;
-    }
-
-    /* preview image: initially centered, zoom/pan from its center */
-    #avatarPreview {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: center center;
-    /* start centered at scale=1 */
-    transform: translate(-50%, -50%) scale(1);
-    cursor: move;
-    user-select: none;
-    transition: transform 0.1s;
-    }
-    #scaleSlider {
-      width: 100%;
-      margin-top: 10px;
-    }
-    .icon-grid {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .icon-grid img {
-      width: 60px;
-      height: 60px;
+      width: 60px; height: 60px;
       border: 2px solid transparent;
       border-radius: 50%;
       cursor: pointer;
@@ -148,12 +70,26 @@
     input[type=radio]:checked + img {
       border-color: #007bff;
     }
-    .errorlist {
-      color: #b00020;
-      list-style: none;
-      margin-bottom: 12px;
-      padding-left: 0;
+    .links { text-align: center; margin-top: 20px; color: #555; font-size: 14px; }
+    .links a { color: #007bff; text-decoration: none; font-weight: 600; }
+    .links a:hover { text-decoration: underline; }
+
+    .crop-frame {
+      width: 120px; height: 120px; margin: 15px auto;
+      border: 2px dashed #007bff;
+      border-radius: 50%; overflow: hidden; position: relative;
     }
+    #avatarPreview {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform-origin: center center;
+      transform: translate(-50%, -50%) scale(1);
+      cursor: move;
+      -webkit-user-drag: none;
+      user-select: none;
+      transition: transform 0.1s;
+    }
+    #scaleSlider { width: 100%; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -161,65 +97,22 @@
     <h2>Rejestracja lekarza</h2>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
-
       {% if form.non_field_errors %}
         <ul class="errorlist">
-          {% for err in form.non_field_errors %}
-            <li>{{ err }}</li>
-          {% endfor %}
+          {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
         </ul>
       {% endif %}
 
-      <div>
-        {{ form.username.label_tag }}
-        {{ form.username }}
-        {{ form.username.errors }}
-      </div>
+      <div>{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
+      <div>{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
+      <div>{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
+      <div>{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
+      <div>{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
+      <div>{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
+      <div>{{ form.license_number.label_tag }}{{ form.license_number }}{{ form.license_number.errors }}</div>
+      <div>{{ form.bio.label_tag }}{{ form.bio }}{{ form.bio.errors }}</div>
 
-      <div>
-        {{ form.email.label_tag }}
-        {{ form.email }}
-        {{ form.email.errors }}
-      </div>
-
-      <div>
-        {{ form.password1.label_tag }}
-        {{ form.password1 }}
-        {{ form.password1.errors }}
-      </div>
-
-      <div>
-        {{ form.password2.label_tag }}
-        {{ form.password2 }}
-        {{ form.password2.errors }}
-      </div>
-
-      <div>
-        {{ form.first_name.label_tag }}
-        {{ form.first_name }}
-        {{ form.first_name.errors }}
-      </div>
-
-      <div>
-        {{ form.last_name.label_tag }}
-        {{ form.last_name }}
-        {{ form.last_name.errors }}
-      </div>
-
-      <div>
-        {{ form.license_number.label_tag }}
-        {{ form.license_number }}
-        {{ form.license_number.errors }}
-      </div>
-
-      <div>
-        {{ form.bio.label_tag }}
-        {{ form.bio }}
-        {{ form.bio.errors }}
-      </div>
-
-
-       <!-- Avatar upload -->
+      <!-- Avatar upload -->
       <div>
         {{ form.avatar_upload.label_tag }}<br>
         {{ form.avatar_upload }}<br>
@@ -231,7 +124,7 @@
         <p>Lub wybierz ikonę:</p>
         <div class="icon-grid">
           {% for val,label in form.avatar_choice.field.choices %}
-            {% if not forloop.first %}
+            {% if not forloop.first %}  
               <label>
                 <input type="radio"
                        name="{{ form.avatar_choice.name }}"
@@ -270,7 +163,6 @@
   </div>
 
   <script>
-    // Elements
     const fileInput   = document.querySelector('input[name="avatar_upload"]');
     const iconOptions = document.querySelectorAll('.icon-grid img');
     const iconRadios  = document.querySelectorAll('.icon-radio');
@@ -279,19 +171,29 @@
     const cropFrame   = document.querySelector('.crop-frame');
     const form        = document.querySelector('form');
 
-    // State
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let offsetX = 0, offsetY = 0;
+    let isDragging = false, startX = 0, startY = 0, offX = 0, offY = 0;
 
-    // Before submit, record crop params
+    function updateTransform(){
+      const s = slider.value / 100;
+      preview.style.transform =
+        `translate(calc(-50% + ${offX * s}px), calc(-50% + ${offY * s}px)) scale(${s})`;
+    }
+
+    // Prevent native drag
+    preview.addEventListener('dragstart', e => e.preventDefault());
+
+    // 1) Save params on submit
     form.addEventListener('submit', () => {
-      document.getElementById('offsetX').value = offsetX;
-      document.getElementById('offsetY').value = offsetY;
-      document.getElementById('scale').value   = slider.value / 100;
+      const s = slider.value / 100;
+      const ratio = preview.naturalWidth / preview.clientWidth;
+      const realX = -offX * ratio * s;
+      const realY = -offY * ratio * s;
+      document.getElementById('offsetX').value = Math.round(realX);
+      document.getElementById('offsetY').value = Math.round(realY);
+      document.getElementById('scale').value   = s;
     });
 
-    // File upload → preview
+    // 2) File upload → preview reset
     fileInput.addEventListener('change', () => {
       if (!fileInput.files[0]) return;
       const reader = new FileReader();
@@ -299,14 +201,12 @@
         preview.src = e.target.result;
         iconRadios.forEach(r => r.checked = false);
         iconOptions.forEach(img => img.style.borderColor = 'transparent');
-        offsetX = offsetY = 0;
-        slider.value = 100;
-        preview.style.transform = 'translate(-50%, -50%) scale(1)';
+        offX = offY = 0; slider.value = 100; updateTransform();
       };
       reader.readAsDataURL(fileInput.files[0]);
     });
 
-    // Stock icon click → preview
+    // 3) Icon click → preview
     iconOptions.forEach((img, i) => {
       img.addEventListener('click', () => {
         iconRadios[i].checked = true;
@@ -315,41 +215,30 @@
         iconOptions.forEach((im, j) => {
           im.style.borderColor = (j === i ? '#007bff' : 'transparent');
         });
-        offsetX = offsetY = 0;
-        slider.value = 100;
-        preview.style.transform = 'translate(-50%, -50%) scale(1)';
+        offX = offY = 0; slider.value = 100; updateTransform();
       });
     });
 
-    // Zoom from center
-    slider.addEventListener('input', () => {
-      const scale = slider.value / 100;
-      preview.style.transform =
-        `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(${scale})`;
-    });
+    // 4) Zoom
+    slider.addEventListener('input', updateTransform);
 
-    // Begin pan
+    // 5) Pan start
     cropFrame.addEventListener('mousedown', e => {
+      e.preventDefault();
       isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
+      startX = e.clientX; startY = e.clientY;
     });
 
-    // Pan movement
+    // 6) Pan move
     document.addEventListener('mousemove', e => {
       if (!isDragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      offsetX += dx;
-      offsetY += dy;
-      startX = e.clientX;
-      startY = e.clientY;
-      const scale = slider.value / 100;
-      preview.style.transform =
-        `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(${scale})`;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      offX += dx; offY += dy;
+      startX = e.clientX; startY = e.clientY;
+      updateTransform();
     });
 
-    // End pan
+    // 7) Pan end
     document.addEventListener('mouseup', () => {
       isDragging = false;
     });

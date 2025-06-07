@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Profil użytkownika</title>
   <style>
-    /* Container & typography */
     body {
       font-family: Arial, sans-serif;
       background: #f0f4f8;
@@ -28,8 +27,6 @@
       margin-bottom: 24px;
       color: #333;
     }
-
-    /* Standard form fields */
     form input[type="text"],
     form input[type="email"],
     form textarea,
@@ -65,16 +62,12 @@
     form button:hover {
       background-color: #0056b3;
     }
-
-    /* Error list */
     .errorlist {
       color: #b00020;
       list-style: none;
       padding: 0;
       margin: 0 0 12px 0;
     }
-
-    /* Current avatar preview */
     .avatar-preview {
       display: block;
       margin: 0 auto 15px auto;
@@ -84,8 +77,6 @@
       object-fit: cover;
       border: 2px solid #007bff;
     }
-
-    /* Crop‐editor UI */
     .crop-frame {
       width: 120px; height: 120px;
       margin: 0 auto 10px;
@@ -98,12 +89,14 @@
       position: absolute;
       top: 50%; left: 50%;
       transform-origin: center center;
+      /* initial transform */
       transform: translate(-50%, -50%) scale(1);
-      cursor: move; user-select: none;
+      cursor: move;
+      user-select: none;
+      -webkit-user-drag: none;
       transition: transform 0.1s;
     }
     #scaleSlider { width: 100%; margin-bottom: 18px; }
-    .errorlist { color: #b00020; list-style: none; padding: 0; margin: 0 0 12px; }
   </style>
 </head>
 <body>
@@ -128,7 +121,6 @@
 
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
-
       <div>
         {{ form.username.label_tag }}<br>
         {{ form.username }}<br>
@@ -186,21 +178,28 @@
     document.addEventListener('DOMContentLoaded', function(){
       const editor    = document.getElementById('avatarEditor');
       const slider    = document.getElementById('scaleSlider');
-      // Select by name since Django auto-IDs the file input
       const fileInput = document.querySelector('input[name="avatar_upload"]');
       const form      = document.querySelector('form');
       const inputX    = document.getElementById('offsetX');
       const inputY    = document.getElementById('offsetY');
       const inputS    = document.getElementById('scale');
-      let isDragging = false, startX=0, startY=0, offX=0, offY=0;
 
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let offX = 0, offY = 0;
+
+      // Recalculates and applies CSS transform: pan offsets *after* scaling
       function updateTransform(){
         const s = slider.value / 100;
-        editor.style.transform = 
-          `translate(calc(-50% + ${offX}px), calc(-50% + ${offY}px)) scale(${s})`;
+        // apply pan offsets scaled by s, then center and scale
+        editor.style.transform =
+          `translate(calc(-50% + ${offX * s}px), calc(-50% + ${offY * s}px)) scale(${s})`;
       }
 
-      // File upload preview
+      // Prevent default dragging of <img>
+      editor.addEventListener('dragstart', e => e.preventDefault());
+
+      // File upload preview reset
       fileInput.addEventListener('change', () => {
         const f = fileInput.files[0];
         if (!f) return;
@@ -219,26 +218,39 @@
 
       // Pan start
       editor.parentElement.addEventListener('mousedown', e => {
+        e.preventDefault();
         isDragging = true;
-        startX = e.clientX; startY = e.clientY;
+        startX = e.clientX;
+        startY = e.clientY;
       });
-      // Pan move
+
+      // Pan move (invert direction so dragging right moves image right)
       document.addEventListener('mousemove', e => {
         if (!isDragging) return;
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        offX += dx; offY += dy;
-        startX = e.clientX; startY = e.clientY;
+        offX += dx;
+        offY += dy;
+        startX = e.clientX;
+        startY = e.clientY;
         updateTransform();
       });
-      // Pan end
-      document.addEventListener('mouseup', () => isDragging = false);
 
-      // On submit, stash crop params
+      // Pan end
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      // On form submit, convert CSS offsets→file pixels *and* include scale
       form.addEventListener('submit', () => {
-        inputX.value = offX;
-        inputY.value = offY;
-        inputS.value = slider.value / 100;
+        const s = slider.value / 100;
+        const ratio = editor.naturalWidth / editor.clientWidth;
+        // final file-pixel offsets:
+        const realX = -offX * ratio * s;
+        const realY = -offY * ratio * s;
+        inputX.value = Math.round(realX);
+        inputY.value = Math.round(realY);
+        inputS.value = s;
       });
     });
   </script>
