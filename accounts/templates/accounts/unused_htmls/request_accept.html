@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Akceptacja kont lekarzy</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            margin-top: 60px;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .request {
+            border-bottom: 1px solid #ddd;
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .doctor-info {
+            flex: 1;
+        }
+
+        .doctor-info p {
+            margin: 5px 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            color: white;
+        }
+
+        .accept-btn {
+            background-color: #28a745;
+        }
+
+        .accept-btn:hover {
+            background-color: #1e7e34;
+        }
+
+        .reject-btn {
+            background-color: #dc3545;
+        }
+
+        .reject-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Prośby o założenie konta lekarza</h2>
+
+        <!-- Przykładowy wniosek - wygeneruj to dynamicznie z backendu -->
+        <div class="request">
+            <div class="doctor-info">
+                <p><strong>Imię i nazwisko:</strong> Dr. Anna Nowak</p>
+                <p><strong>Email:</strong> anna.nowak@example.com</p>
+                <p><strong>Specjalizacja:</strong> Kardiolog</p>
+                <p><strong>Numer PWZ:</strong> 1234567</p>
+            </div>
+            <div class="actions">
+                <form method="post" action="/admin/accept/1/">
+                    {% csrf_token %}
+                    <button class="accept-btn" type="submit">Akceptuj</button>
+                </form>
+                <form method="post" action="/admin/reject/1/">
+                    {% csrf_token %}
+                    <button class="reject-btn" type="submit">Odrzuć</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Powtórz .request dla każdej prośby -->
+    </div>
+</body>
+</html>

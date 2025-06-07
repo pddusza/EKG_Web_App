@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Wybierz typ konta</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .login-link {
+            font-size: 15px;
+            margin-top: 10px;
+        }
+
+        .login-link a {
+            color: #007bff;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Wybierz typ konta</h2>
+        <div class="button-group">
+            <a href="{% url 'accounts:register_patient' %}">
+                <button class="btn">Pacjent</button>
+            </a>
+            <a href="{% url 'accounts:register_doctor' %}">
+                <button class="btn">Lekarz</button>
+            </a>
+            <a href="{% url 'accounts:register' %}">
+                <button class="btn">Dummy</button>
+            </a>
+        </div>
+        <div class="login-link">
+            Masz już konto? <a href="{% url 'accounts:login' %}">Zaloguj się</a>
+        </div>
+    </div>
+</body>
+</html>
+
+

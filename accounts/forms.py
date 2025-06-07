@@ -4,18 +4,49 @@ from django.contrib.auth.models import User
 from .models import CSVResult
 
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True, label="Email")
+    email            = forms.EmailField(required=True)
+    first_name       = forms.CharField(required=False)
+    last_name        = forms.CharField(required=False)
+
+    # patient‐only
+    pesel            = forms.CharField(required=False)
+    birth_date       = forms.DateField(
+                         required=False,
+                         widget=forms.DateInput(attrs={'type': 'date'})
+                       )
+    medical_history  = forms.CharField(
+                         required=False,
+                         widget=forms.Textarea(attrs={'rows':3})
+                       )
+
+    # doctor‐only
+    license_number   = forms.CharField(required=False)
+    bio              = forms.CharField(
+                         required=False,
+                         widget=forms.Textarea(attrs={'rows':3})
+                       )
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Ten email jest już zarejestrowany.")
+        return email
+
+    def clean_pesel(self):
+        pesel = self.cleaned_data.get('pesel', '')
+        if pesel and (not pesel.isdigit() or len(pesel) != 11):
+            raise forms.ValidationError("Numer PESEL musi składać się z 11 cyfr.")
+        return pesel
 
     class Meta:
-        model = User
-        fields = ("username", "email", "password1", "password2")
+        model  = User
+        fields = [
+          'username','email','first_name','last_name',
+          'password1','password2',
+          'pesel','birth_date','medical_history',
+          'license_number','bio',
+        ]
 
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data["email"]
-        if commit:
-            user.save()
-        return user
 
 
 class CSVResultForm(forms.ModelForm):

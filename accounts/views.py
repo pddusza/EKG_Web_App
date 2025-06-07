@@ -10,9 +10,7 @@ from ecg.ml                import run_ecg_analysis, predict_from_csv
 import csv
 import json
 from django.core.paginator import Paginator
-
-
-
+from .models                    import Profile
 
 app_name = 'accounts'
 
@@ -78,6 +76,51 @@ def add_result_view(request):
 def your_results_view(request):
 
     return render(request, 'accounts/your_results.html')
+
+def account_type_view(request):
+    return render(request, 'accounts/account_type.html')
+
+def register_patient_view(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # populate profile fields
+            p = user.profile
+            p.first_name      = form.cleaned_data['first_name']
+            p.last_name       = form.cleaned_data['last_name']
+            p.pesel           = form.cleaned_data['pesel']
+            p.birth_date      = form.cleaned_data['birth_date']
+            p.medical_history = form.cleaned_data['medical_history']
+            # privileges stay: is_patient=True
+            p.save()
+            auth_login(request, user)
+            return redirect("accounts:login")
+    else:
+        form = CustomUserCreationForm()
+    return render(request, "accounts/register_patient.html", {"form": form})
+
+
+def register_doctor_view(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            p = user.profile
+            p.first_name     = form.cleaned_data['first_name']
+            p.last_name      = form.cleaned_data['last_name']
+            p.license_number = form.cleaned_data['license_number']
+            p.bio            = form.cleaned_data['bio']
+            # set doctor+admin for now
+            p.is_patient = False
+            p.is_doctor  = True
+            p.is_admin   = True
+            p.save()
+            auth_login(request, user)
+            return redirect("accounts:login")
+    else:
+        form = CustomUserCreationForm()
+    return render(request, "accounts/register_doctor.html", {"form": form})
 
 
 
@@ -149,18 +192,13 @@ def add_result_view(request):
 @login_required
 def your_results_view(request):
     qs = CSVResult.objects.filter(owner=request.user).order_by('-uploaded_at')
-
     record_number = request.GET.get('record_number')
     name_filter = request.GET.get('name')
-    page = request.GET.get('page', 1)  # numer strony
-
+    page = request.GET.get('page', 1)  #
     if name_filter:
         qs = qs.filter(title__icontains=name_filter)
-
     results = []
     page_number = request.GET.get('page', '1')
-
-
     for r in qs:
         try:
             ecg = ECGSignal.objects.get(file=r.csv_file.name, owner=request.user)
@@ -171,14 +209,12 @@ def your_results_view(request):
 
         r.ml_stats = analysis
         results.append(r)
-
-    # Filtrowanie po numerze rekordu (priorytetowe)
     if record_number:
         try:
             index = int(record_number) - 1
             if 0 <= index < len(results):
                 results = [results[index]]
-                page = None  # ukrywamy paginację w tym przypadku
+                page = None  
             else:
                 results = []
         except ValueError:
@@ -188,12 +224,9 @@ def your_results_view(request):
             'page_obj': None,
             'page': None,
         })
-
-    # Paginacja: 3 wyniki na stronę
     paginator = Paginator(results, 3)
     page_obj = paginator.get_page(page)
     offset = (page_obj.number - 1) * 3
-
     return render(request, 'accounts/your_results.html', {
         'results': page_obj.object_list,
         'page_obj': page_obj,
@@ -205,15 +238,12 @@ def your_results_view(request):
 @login_required
 def result_detail_view(request, pk):
     result = get_object_or_404(CSVResult, pk=pk, owner=request.user)
-
-    # Read raw samples for plotting
     samples = []
     with open(result.csv_file.path, newline='') as f:
         reader = csv.reader(f)
         for row in reader:
             try: samples.append(float(row[0]))
             except: pass
-
     signal_json = json.dumps(samples)
 
     analysis     = result.analysis or {}

@@ -16,4 +16,7 @@ urlpatterns = [
     path('add-result/', views.add_result_view, name='add_result'),
     path('your-results/', views.your_results_view, name='your_results'),
     path('results/<int:pk>/', views.result_detail_view, name='result_detail'),
+    path('account-type/', views.account_type_view, name='account_type'),
+    path('register/patient/', views.register_patient_view, name='register_patient'),
+    path('register/doctor/', views.register_doctor_view, name='register_doctor'),
 ]

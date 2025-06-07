@@ -194,7 +194,6 @@
             <li><strong>Średnia:</strong> {{ stats.mean }}</li>
         </ul>
 
-        <!-- ↓↓↓ New Classification Block ↓↓↓ -->
         {% if classification and not classification.error %}
             {% with preds=classification.predictions %}
                 {% if preds|length == 1 and preds.0 == "NORM" %}

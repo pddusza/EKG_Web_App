@@ -5,17 +5,32 @@ from django.dispatch import receiver
 from django.conf import settings
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    avatar = models.URLField(blank=True, null=True) 
-    first_name = models.CharField(max_length=30, blank=True)
-    last_name = models.CharField(max_length=30, blank=True)
-    bio = models.TextField(blank=True)
+    user             = models.OneToOneField(User, on_delete=models.CASCADE)
+    avatar           = models.URLField(blank=True, null=True)
+    first_name       = models.CharField(max_length=30, blank=True)
+    last_name        = models.CharField(max_length=30, blank=True)
+
+    # ← extra fields
+    pesel            = models.CharField(max_length=11, blank=True, null=True)
+    birth_date       = models.DateField(blank=True, null=True)
+    medical_history  = models.TextField(blank=True)
+    license_number   = models.CharField(max_length=30, blank=True)
+    bio              = models.TextField(blank=True)
+
+    # ← privilege flags
+    is_patient       = models.BooleanField(default=True)
+    is_doctor        = models.BooleanField(default=False)
+    is_admin         = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.username} Profile"
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
-    instance.profile.save()
+    else:
+        instance.profile.save()
 
 #class CSVResult(models.Model):
 #    owner    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
