@@ -87,9 +87,6 @@
             border: 1px solid #e0e0e0;
             border-radius: 6px;
         }
-
-        /* ↓↓↓ New Styles for Classification Banner & Modal ↓↓↓ */
-
         .normal-banner {
             padding: 10px 14px;
             border: 1px solid #4CAF50;
@@ -123,7 +120,6 @@
         .more-info-btn:hover {
             background-color: #1565c0;
         }
-        /* Modal overlay */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -131,12 +127,11 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.5);
-            display: none; /* hidden by default */
+            display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
-        /* Modal content */
         .modal-content {
             background: white;
             padding: 20px 30px;
@@ -146,7 +141,6 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             position: relative;
         }
-        /* Close button inside modal */
         .modal-close {
             position: absolute;
             top: 10px;
@@ -170,7 +164,6 @@
             margin-bottom: 8px;
             font-size: 14px;
         }
-        /* ↑↑↑ End New Styles ↑↑↑ */
     </style>
 </head>
 <body>
@@ -207,12 +200,12 @@
                 {% endif %}
             {% endwith %}
 
-            <button class="more-info-btn" id="open-modal">
-                Więcej informacji
-            </button>
+            {% if user.profile.is_doctor %}
+                <button class="more-info-btn" id="open-modal">
+                    Więcej informacji
+                </button>
+            {% endif %}
         {% endif %}
-        <!-- ↑↑↑ End Classification Block ↑↑↑ -->
-
 
         <h2>Wykres sygnału</h2>
         <canvas id="signalChart" width="800" height="400"></canvas>
@@ -220,48 +213,50 @@
         <h2>Seria tętna</h2>
         <canvas id="hrChart" width="800" height="200"></canvas>
 
-        <h3>HRV – metryki czasowe</h3>
-        <table>
-            <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
-            <tbody>
-                {% for key, val in hrv_time.items %}
-                <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% if user.profile.is_doctor %}
+            <h3>HRV – metryki czasowe</h3>
+            <table>
+                <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
+                <tbody>
+                    {% for key, val in hrv_time.items %}
+                        <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
-        <h3>HRV – metryki częstotliwościowe</h3>
-        <table>
-            <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
-            <tbody>
-                {% for key, val in hrv_frequency.items %}
-                <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            <h3>HRV – metryki częstotliwościowe</h3>
+            <table>
+                <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
+                <tbody>
+                    {% for key, val in hrv_frequency.items %}
+                        <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
-        <h3>HRV – metryki nieliniowe</h3>
-        <table>
-            <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
-            <tbody>
-                {% for key, val in hrv_nonlinear.items %}
-                <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            <h3>HRV – metryki nieliniowe</h3>
+            <table>
+                <thead><tr><th>Metryka</th><th>Wartość</th></tr></thead>
+                <tbody>
+                    {% for key, val in hrv_nonlinear.items %}
+                        <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
-        <h3>Morfologia sygnału</h3>
-        <ul>
-            <li><strong>Średnie PR (ms):</strong> {{ morphology.pr_mean_ms }}</li>
-            <li><strong>Średnie QRS (ms):</strong> {{ morphology.qrs_mean_ms }}</li>
-            <li><strong>Średnie QT (ms):</strong> {{ morphology.qt_mean_ms }}</li>
-        </ul>
+            <h3>Morfologia sygnału</h3>
+            <ul>
+                <li><strong>Średnie PR (ms):</strong> {{ morphology.pr_mean_ms }}</li>
+                <li><strong>Średnie QRS (ms):</strong> {{ morphology.qrs_mean_ms }}</li>
+                <li><strong>Średnie QT (ms):</strong> {{ morphology.qt_mean_ms }}</li>
+            </ul>
+        {% endif %}
 
         <a href="{{ result.csv_file.url }}" download class="download-btn">Pobierz oryginalny plik</a>
         <a href="{% url 'accounts:your_results' %}" class="back-btn">← Powrót do listy wyników</a>
     </div>
 
-    <!-- ↓↓↓ New Modal Markup ↓↓↓ -->
+    {% if user.profile.is_doctor %}
     <div class="modal-overlay" id="modal-overlay">
         <div class="modal-content">
             <span class="modal-close" id="close-modal">&times;</span>
@@ -273,19 +268,14 @@
             </ul>
         </div>
     </div>
-    <!-- ↑↑↑ End Modal Markup ↑↑↑ -->
+    {% endif %}
 
-    <!-- Chart.js library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
-            // Parse data
-            var samples = [];
-            try { samples = JSON.parse('{{ signal_json|escapejs }}'); } catch (e) { console.error(e); }
-            var hrSeries = [];
-            try { hrSeries = JSON.parse('{{ heart_rate|escapejs }}'); } catch (e) { console.error(e); }
+            var samples = JSON.parse('{{ signal_json|escapejs }}');
+            var hrSeries = JSON.parse('{{ heart_rate|escapejs }}');
 
-            // Signal chart
             var ctx1 = document.getElementById('signalChart').getContext('2d');
             new Chart(ctx1, {
                 type: 'line',
@@ -293,16 +283,15 @@
                     labels: samples.map((_,i)=>i+1),
                     datasets:[{ label:'ECG', data: samples, fill:false, borderWidth:1 }]
                 },
-                options:{ 
-                    responsive:true, 
-                    scales:{ 
-                        x:{title:{display:true,text:'Numer próbki'}}, 
-                        y:{title:{display:true,text:'Amplituda'}} 
-                    } 
+                options:{
+                    responsive:true,
+                    scales:{
+                        x:{title:{display:true,text:'Numer próbki'}},
+                        y:{title:{display:true,text:'Amplituda'}}
+                    }
                 }
             });
 
-            // Heart rate chart
             var ctx2 = document.getElementById('hrChart').getContext('2d');
             new Chart(ctx2, {
                 type: 'line',
@@ -310,20 +299,18 @@
                     labels: hrSeries.map((_,i)=>i+1),
                     datasets:[{ label:'Heart Rate', data: hrSeries, fill:false, borderWidth:1 }]
                 },
-                options:{ 
-                    responsive:true, 
-                    scales:{ 
-                        x:{title:{display:true,text:'Index'}}, 
-                        y:{title:{display:true,text:'BPM'}} 
-                    } 
+                options:{
+                    responsive:true,
+                    scales:{
+                        x:{title:{display:true,text:'Index'}},
+                        y:{title:{display:true,text:'BPM'}}
+                    }
                 }
             });
 
-            // ↓↓↓ Modal functionality ↓↓↓
             var openBtn = document.getElementById('open-modal');
             var closeBtn = document.getElementById('close-modal');
             var modalOverlay = document.getElementById('modal-overlay');
-
             if (openBtn && modalOverlay) {
                 openBtn.addEventListener('click', function() {
                     modalOverlay.style.display = 'flex';
@@ -334,7 +321,6 @@
                     modalOverlay.style.display = 'none';
                 });
             }
-            // Close when clicking outside modal-content
             if (modalOverlay) {
                 modalOverlay.addEventListener('click', function(e) {
                     if (e.target === modalOverlay) {
@@ -342,7 +328,6 @@
                     }
                 });
             }
-            // ↑↑↑ End Modal functionality ↑↑↑
         });
     </script>
 </body>

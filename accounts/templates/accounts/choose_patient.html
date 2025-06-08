@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Wybierz pacjenta</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            margin-top: 60px;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        input[type="text"],
+        select {
+            padding: 12px 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        label {
+            font-weight: 500;
+            color: #333;
+        }
+        .btn-link {
+    display: block;
+    margin: 20px auto 0 auto;
+    width: fit-content;
+    background-color: #6c757d;
+    color: white;
+    text-align: center;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-link:hover {
+    background-color: #565e64;
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Wybierz pacjenta</h2>
+            <form method="post" action="">
+                {% csrf_token %}
+                <label for="pesel">Wyszukaj po numerze PESEL:</label>
+                <input type="text" id="pesel" name="pesel" placeholder="Wpisz PESEL pacjenta" maxlength="11">
+                <button type="submit">Przypisz pacjenta</button>
+                <button type="submit">Przejdź do wyników</button>
+            </form>
+
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li style="color: {% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}black{% endif %};">
+                            {{ message }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+       <a href="{% url 'accounts:mainscreen' %}" class="btn-link">Powrót do menu głównego</a>
+    </div>
+</body>
+</html>
+
+

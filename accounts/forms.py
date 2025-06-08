@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import CSVResult, Profile
+from datetime import date
 
 
 # List of bundled static icons here (filenames under static/avatars/)
@@ -116,11 +117,35 @@ class ProfileForm(forms.ModelForm):
         return img
 
 class CSVResultForm(forms.ModelForm):
+    pesel = forms.CharField(
+        label="Numer PESEL",
+        max_length=11,
+        widget=forms.TextInput(attrs={'placeholder': 'Wpisz numer PESEL'})
+    )
+    exam_date = forms.DateField(
+        label="Data wykonania badania",
+        initial=date(2000, 1, 1),
+        widget=forms.DateInput(attrs={'type':'date'})
+    )
+    sampling_rate = forms.IntegerField(
+        label="Częstotliwość próbki (Hz)",
+        min_value=1,
+        initial= 100,
+        widget=forms.NumberInput(attrs={'placeholder': '[Hz]'})
+    )
+
     class Meta:
-        model = CSVResult
-        fields = ['title', 'csv_file', 'comment']
+        model  = CSVResult
+        fields = [
+            'title',
+            'pesel',
+            'csv_file',
+            'exam_date',
+            'sampling_rate',
+            'comment',
+        ]
         labels = {
-            'title': 'Tytuł',
+            'title': 'Nazwa wyniku',
             'csv_file': 'Plik CSV',
             'comment': 'Komentarz (opcjonalnie)',
         }

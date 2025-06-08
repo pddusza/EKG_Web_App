@@ -112,15 +112,31 @@
         </p>
 
         <div class="tile-container">
-            <a href="{% url 'accounts:add_result' %}" class="tile">
-                <h3>➕ Dodaj wynik</h3>
-                <p>Prześlij nowe EKG do analizy.</p>
-            </a>
-            <a href="{% url 'accounts:your_results' %}" class="tile">
-                <h3>📋 Twoje wyniki</h3>
-                <p>Przeglądaj i filtruj zapisane analizy.</p>
-            </a>
+            {% if request.user.profile.is_doctor %}
+                <a href="{% url 'accounts:add_result' %}" class="tile">
+                    <h3>➕ Dodaj wynik</h3>
+                    <p>Prześlij nowe EKG do analizy.</p>
+                </a>
+                <a href="{% url 'accounts:your_results' %}" class="tile">
+                    <h3>📋 Twoje wyniki</h3>
+                    <p>Przeglądaj i filtruj zapisane analizy.</p>
+                </a>
+                <a href="{% url 'accounts:choose_patient' %}" class="tile">
+                    <h3>👤 Dodaj pacjenta</h3>
+                    <p>Wprowadź dane nowego pacjenta do systemu.</p>
+                </a>
+                <a href="{% url 'accounts:my_patients' %}" class="tile">
+                    <h3>🗂️ Lista pacjentów</h3>
+                    <p>Zobacz listę swoich pacjentów.</p>
+                </a>
+            {% elif request.user.profile.is_patient %}
+                <a href="{% url 'accounts:your_results' %}" class="tile">
+                    <h3>📋 Twoje wyniki</h3>
+                    <p>Zobacz i przeanalizuj swoje EKG.</p>
+                </a>
+            {% endif %}
         </div>
+
     </main>
 </body>
 </html>

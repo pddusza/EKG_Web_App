@@ -41,6 +41,8 @@
         }
         input[type="text"],
         input[type="file"],
+        input[type="date"],
+        input[type="number"],
         textarea {
             padding: 10px 12px;
             margin-bottom: 20px;
@@ -83,19 +85,17 @@
 <body>
     <div class="container">
         <h1>Dodaj wynik</h1>
-        <form method="post" enctype="multipart/form-data" action="">
-            {% csrf_token %}
-            
-            <label for="title">Nazwa wyniku:</label>
-            <input type="text" id="title" name="title" placeholder="Podaj nazwę wyniku" required>
-
-            <label for="csv_file">Plik CSV:</label>
-            <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
-
-            <label for="comment">Komentarz (opcjonalnie):</label>
-            <textarea id="comment" name="comment" placeholder="Dodaj komentarz..."></textarea>
-
-            <button type="submit">Dodaj</button>
+        <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div class="form-group">
+            {{ field.label_tag }}
+            {{ field }}
+            {{ field.errors }}
+            </div>
+        {% endfor %}
+        <button type="submit">Dodaj</button>
         </form>
         <a href="{% url 'accounts:mainscreen' %}" class="btn-link">Powrót do ekranu głównego</a>
     </div>

@@ -19,4 +19,6 @@ urlpatterns = [
     path('account-type/', views.account_type_view, name='account_type'),
     path('register/patient/', views.register_patient_view, name='register_patient'),
     path('register/doctor/', views.register_doctor_view, name='register_doctor'),
+    path('choose-patient/',views.choose_patient_view, name='choose_patient'),
+    path('my-patients/',views.my_patients_view, name='my_patients'),
 ]
