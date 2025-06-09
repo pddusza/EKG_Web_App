@@ -21,4 +21,6 @@ urlpatterns = [
     path('register/doctor/', views.register_doctor_view, name='register_doctor'),
     path('choose-patient/',views.choose_patient_view, name='choose_patient'),
     path('my-patients/',views.my_patients_view, name='my_patients'),
+    path("download-excel/<int:pk>/", views.download_my_results_xlsx, name="download_my_excel_results"),
+    path("download-pdf/<int:pk>/", views.download_pdf, name="download_my_pdf_results"),
 ]

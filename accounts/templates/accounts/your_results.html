@@ -286,6 +286,8 @@
                         {% endif %}
 
                         <a class="download-btn" href="{{ r.csv_file.url }}" download>Pobierz plik</a>
+                        <a class="download-btn" href="{% url 'accounts:download_my_excel_results' r.id %}" >Pobierz wyniki (CSV)</a>
+                        <a class="download-btn" href="{% url 'accounts:download_my_pdf_results' r.id %}" >Pobierz wyniki (PDF)</a>
                     </div>
 
                     {% if r.ml_stats and r.ml_stats.classification and not r.ml_stats.classification.error %}

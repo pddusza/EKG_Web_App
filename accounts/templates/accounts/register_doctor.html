@@ -18,9 +18,20 @@
       padding: 30px 40px;
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
-      width: 360px;
+      width: 720px; 
+      max-width: 95vw;
       box-sizing: border-box;
       margin: 0 auto;
+    }
+          .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
     }
     h2 { text-align: center; margin-bottom: 24px; color: #333; }
     form input, form textarea {
@@ -94,67 +105,69 @@
 <body>
   <div class="register-container">
     <h2>Rejestracja lekarza</h2>
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      {% if form.non_field_errors %}
-        <ul class="errorlist">
-          {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
-        </ul>
-      {% endif %}
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <ul class="errorlist">
+      {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+    </ul>
+  {% endif %}
 
-      <div>{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
-      <div>{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
-      <div>{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
-      <div>{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
-      <div>{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
-      <div>{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
-      <div>{{ form.license_number.label_tag }}{{ form.license_number }}{{ form.license_number.errors }}</div>
-      <div>{{ form.bio.label_tag }}{{ form.bio }}{{ form.bio.errors }}</div>
+  <div class="form-grid">
+    <div>{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
+    <div>{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
+    <div>{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
+    <div>{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
+    <div>{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
+    <div>{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
+    <div>{{ form.license_number.label_tag }}{{ form.license_number }}{{ form.license_number.errors }}</div>
+    <div>{{ form.bio.label_tag }}{{ form.bio }}{{ form.bio.errors }}</div>
+  </div>
 
-      <!-- Avatar upload -->
-      <div>
-        {{ form.avatar_upload.label_tag }}<br>
-        {{ form.avatar_upload }}<br>
-        {{ form.avatar_upload.errors }}
-      </div>
+  <!-- Avatar upload -->
+  <div>
+    {{ form.avatar_upload.label_tag }}<br>
+    {{ form.avatar_upload }}<br>
+    {{ form.avatar_upload.errors }}
+  </div>
 
-      <!-- Stock icons -->
-      <div>
-        <p>Lub wybierz ikonę:</p>
-        <div class="icon-grid">
-          {% for val,label in form.avatar_choice.field.choices %}
-            {% if not forloop.first %}  
-              <label>
-                <input type="radio"
-                       name="{{ form.avatar_choice.name }}"
-                       value="{{ val }}"
-                       class="icon-radio"
-                       style="display:none;" />
-                <img src="{{ MEDIA_URL }}avatars/{{ val }}"
-                     alt="{{ label }}"
-                     title="{{ label }}" />
-              </label>
-            {% endif %}
-          {% endfor %}
-        </div>
-        {{ form.avatar_choice.errors }}
-      </div>
+  <!-- Stock icons -->
+  <div>
+    <p>Lub wybierz ikonę:</p>
+    <div class="icon-grid">
+      {% for val,label in form.avatar_choice.field.choices %}
+        {% if not forloop.first %}  
+          <label>
+            <input type="radio"
+                   name="{{ form.avatar_choice.name }}"
+                   value="{{ val }}"
+                   class="icon-radio"
+                   style="display:none;" />
+            <img src="{{ MEDIA_URL }}avatars/{{ val }}"
+                 alt="{{ label }}"
+                 title="{{ label }}" />
+          </label>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {{ form.avatar_choice.errors }}
+  </div>
 
-      <!-- Crop preview -->
-      <div class="crop-frame">
-        <img id="avatarPreview"
-             src="{{ MEDIA_URL }}avatars/default.png"
-             alt="Podgląd avatara" />
-      </div>
-      <input type="range" id="scaleSlider" min="50" max="150" value="100">
+  <!-- Crop preview -->
+  <div class="crop-frame">
+    <img id="avatarPreview"
+         src="{{ MEDIA_URL }}avatars/default.png"
+         alt="Podgląd avatara" />
+  </div>
+  <input type="range" id="scaleSlider" min="50" max="150" value="100">
 
-      <!-- Hidden crop parameters -->
-      <input type="hidden" name="offsetX" id="offsetX">
-      <input type="hidden" name="offsetY" id="offsetY">
-      <input type="hidden" name="scale"   id="scale">
+  <!-- Hidden crop parameters -->
+  <input type="hidden" name="offsetX" id="offsetX">
+  <input type="hidden" name="offsetY" id="offsetY">
+  <input type="hidden" name="scale"   id="scale">
 
-      <button type="submit">Zarejestruj się</button>
-    </form>
+  <button type="submit">Zarejestruj się</button>
+</form>
     <div class="links">
       Masz już konto? <a href="{% url 'accounts:login' %}">Zaloguj się</a><br>
       <a href="{% url 'accounts:account_type' %}">Powrót do wyboru typu konta</a>

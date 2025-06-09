@@ -16,6 +16,37 @@ from .models                    import Profile
 from PIL                 import Image
 from django.core.files.base    import ContentFile
 from django.contrib import messages
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase     import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill
+from openpyxl.chart import LineChart, Reference, Series
+from django.utils      import timezone
+from reportlab.pdfbase      import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes   import A4
+from reportlab.lib            import colors
+from reportlab.platypus       import Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles     import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums      import TA_LEFT, TA_CENTER
+from reportlab.pdfgen         import canvas
+from .models                  import CSVResult
+
+import math
+
+
+# Register a Unicode font for Polish characters
+FONT_NAME = "DejaVuSans"
+FONT_PATH = os.path.join(settings.BASE_DIR, "reports", "fonts", "DejaVuSans.ttf")
+pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+
+# Define paragraph styles
+styles = getSampleStyleSheet()
+styles.add(ParagraphStyle(name='MetricNote', fontName=FONT_NAME, fontSize=8, leading=10, leftIndent=10, rightIndent=10))
+styles.add(ParagraphStyle(name='Summary', fontName=FONT_NAME, fontSize=10, leading=12))
+
 app_name = 'accounts'
 
 def login_view(request):
@@ -38,8 +69,8 @@ def register(request):
         form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save()            # <-- writes to auth_user
-            auth_login(request, user)     # optional: log them in
-            return redirect("accounts:login")      # or "ecg:history", whichever you prefer
+            auth_login(request, user)
+            return redirect("accounts:login")
     else:
         form = CustomUserCreationForm()
 
@@ -260,44 +291,6 @@ def register_doctor_view(request):
     return render(request, "accounts/register_doctor.html", {"form": form})
 
 
-def _handle_avatar_crop(profile, offsetX, offsetY, scale):
-    """
-    Crop & resize the avatar to 120×120, then
-    save it as a new file under media/avatars with a UUID name.
-    """
-    # Open either the uploaded image or the stock icon
-    img_path = profile.avatar.path
-    with Image.open(img_path) as img:
-        # 🛠 Resize
-        new_size = (int(img.width * scale), int(img.height * scale))
-        img = img.resize(new_size, Image.LANCZOS)
-
-        # 🛠 Compute crop box (center + offsets)
-        frame = 120
-        cx = new_size[0] // 2 + offsetX
-        cy = new_size[1] // 2 + offsetY
-        left   = max(0, cx - frame//2)
-        top    = max(0, cy - frame//2)
-        right  = min(new_size[0], left + frame)
-        bottom = min(new_size[1], top  + frame)
-        cropped = img.crop((left, top, right, bottom))
-
-        # 🛠 Write to in-memory buffer
-        buffer = io.BytesIO()
-        cropped.save(buffer, format='PNG')
-        buffer.seek(0)
-
-        # 🛠 Create a new UUID filename
-        filename = f"avatars/{uuid.uuid4().hex}.png"
-
-        # 🛠 Save via Django storage and assign to profile
-        file_content = ContentFile(buffer.read())
-        profile.avatar.save(filename, file_content, save=False)
-
-
-
-import math
-
 def _sanitize_for_json(obj):
     """
     Recursively replace any float that is NaN/Inf with None,
@@ -392,10 +385,8 @@ def your_results_view(request):
             messages.error(request, "Nie masz dostępu do wyników tego pacjenta.")
             return redirect('accounts:my_patients')
 
-    # fetch that owner’s results
     qs = CSVResult.objects.filter(owner=owner).order_by('-uploaded_at')
 
-    # optional title filter
     name_filter = request.GET.get('name')
     if name_filter:
         qs = qs.filter(title__icontains=name_filter)
@@ -458,7 +449,6 @@ def result_detail_view(request, pk):
             owner__profile__doctor=user
         )
     else:
-        # Patient (or other): only their own
         result = get_object_or_404(CSVResult, pk=pk, owner=user)
 
     # Load raw samples for the signal chart
@@ -476,8 +466,6 @@ def result_detail_view(request, pk):
 
     signal_json = json.dumps(samples)
 
-    # Re-fetch the ML stats from AnalysisResult if you like,
-    # or use result.analysis if you already stored it there.
     try:
         ecg_signal = ECGSignal.objects.get(file=result.csv_file.name, owner=result.owner)
         ar = AnalysisResult.objects.filter(signal=ecg_signal).order_by('-id').first()
@@ -514,9 +502,6 @@ def is_doctor(user):
 def is_patient(user):
     return hasattr(user, 'profile') and user.profile.is_patient
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from accounts.models import Profile  # <- dostosuj ścieżkę importu jeśli inna
 
 @login_required
 def my_patients_view(request):
@@ -532,3 +517,276 @@ def my_patients_view(request):
         'patients':    qs,
         'pesel_filter': pesel_filter
     })
+
+\
+@login_required
+def download_my_results_xlsx(request, pk):
+    # — Permission logic —
+    if hasattr(request.user, 'profile') and request.user.profile.is_doctor:
+        result = get_object_or_404(
+            CSVResult, pk=pk,
+            owner__profile__doctor=request.user
+        )
+    else:
+        result = get_object_or_404(CSVResult, pk=pk, owner=request.user)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Wyniki i surowe dane"
+    row = 1
+
+    # 1) Metadata + Średnie HR
+    hr_list = (result.analysis or {}).get("heart_rate", [])
+    avg_hr   = sum(hr_list)/len(hr_list) if hr_list else None
+    meta = [
+        ("Tytuł",      result.title),
+        ("PESEL",      result.pesel),
+        ("Data",       result.exam_date.isoformat()),
+        ("Średnie HR", avg_hr),
+    ]
+    for label, val in meta:
+        ws.cell(row=row, column=1, value=label)
+        cell = ws.cell(row=row, column=2, value=val)
+        if label == "Średnie HR" and avg_hr is not None:
+            if avg_hr < 90:
+                color = "FFCCEECC"
+            elif avg_hr <= 120:
+                color = "FFFFF2CC"
+            else:
+                color = "FFF4CCCC"
+            cell.fill = PatternFill("solid", fgColor=color)
+        row += 1
+    row += 1
+
+    # 2) Raw CSV marker
+    start_raw = row
+    ws.cell(row=row, column=1, value="--- Surowe dane CSV ---")
+    row += 1
+
+    # 3) Dump CSV with numeric casting
+    with result.csv_file.open("rb") as f:
+        text_stream = io.TextIOWrapper(f, encoding="utf-8", newline="")
+        reader = csv.reader(text_stream, delimiter=',')
+        # get first row to count leads
+        try:
+            first_row = next(reader)
+        except StopIteration:
+            first_row = []
+        num_leads = len(first_row)
+
+        # write header
+        ws.cell(row=row, column=1, value="Index")
+        for i in range(1, num_leads+1):
+            ws.cell(row=row, column=1+i, value=f"Lead_{i}")
+        row += 1
+
+        # write first data row
+        idx = 1
+        ws.cell(row=row, column=1, value=idx)
+        for col_idx, raw in enumerate(first_row, start=2):
+            try:
+                val = float(raw)
+            except (ValueError, TypeError):
+                val = None
+            ws.cell(row=row, column=col_idx, value=val)
+        row += 1
+        idx += 1
+
+        # write rest
+        for data_row in reader:
+            ws.cell(row=row, column=1, value=idx)
+            for col_idx, raw in enumerate(data_row, start=2):
+                try:
+                    val = float(raw)
+                except (ValueError, TypeError):
+                    val = None
+                ws.cell(row=row, column=col_idx, value=val)
+            row += 1
+            idx += 1
+
+    # 4) Build chart using header row for series names
+    header_row     = start_raw + 1
+    first_data_row = header_row + 1
+    last_data_row  = row - 1
+    first_lead_col = 2
+    last_lead_col  = first_lead_col + num_leads - 1
+
+    chart = LineChart()
+    chart.title        = "Sygnały ECG"
+    chart.x_axis.title = "Index"
+    chart.y_axis.title = "Amplitude"
+
+    data = Reference(
+        ws,
+        min_col=first_lead_col,
+        max_col=last_lead_col-10,
+        min_row=header_row,
+        max_row=last_data_row
+    )
+    chart.add_data(data, titles_from_data=True)
+
+    cats = Reference(
+        ws,
+        min_col=1,
+        min_row=first_data_row,
+        max_row=last_data_row
+    )
+    chart.set_categories(cats)
+
+    insert_col = last_lead_col + 2
+    ws.add_chart(chart, f"{chr(64 + insert_col)}{start_raw}")
+
+    # 5) Stream back
+    out = io.BytesIO()
+    wb.save(out)
+    out.seek(0)
+    resp = HttpResponse(
+        out.getvalue(),
+        content_type=(
+            "application/vnd.openxmlformats-"
+            "officedocument.spreadsheetml.sheet"
+        )
+    )
+    resp["Content-Disposition"] = 'attachment; filename="wyniki_full.xlsx"'
+    return resp
+
+
+
+
+
+
+
+
+
+
+@login_required
+def download_pdf(request, pk):
+    # Permission logic
+    if hasattr(request.user, 'profile') and request.user.profile.is_doctor:
+        result = get_object_or_404(
+            CSVResult,
+            pk=pk,
+            owner__profile__doctor=request.user
+        )
+    else:
+        result = get_object_or_404(CSVResult, pk=pk, owner=request.user)
+
+    data       = result.analysis or {}
+    exam_date  = result.uploaded_at.date().strftime("%Y-%m-%d")
+    issue_date = timezone.localdate().strftime("%Y-%m-%d")
+
+    buffer = io.BytesIO()
+    p      = canvas.Canvas(buffer, pagesize=A4)
+    w, h    = A4
+
+    # Header
+    p.setFont(FONT_NAME, 16)
+    p.drawString(50, h - 50, f"Wynik: {result.title}")
+    p.setFont(FONT_NAME, 10)
+    p.drawString(50, h - 70, f"Data badania: {exam_date}")
+    p.drawRightString(w - 50, h - 70, f"Data wydania: {issue_date}")
+
+    # Classification table
+    cls    = data.get('classification', {})
+    label  = (cls.get('predictions') or ["–"])[0]
+    interp = "Normalny sygnał" if label == "NORM" else "Skonsultuj się ze swoim lekarzem"
+    tbl1 = Table(
+        [["Klasyfikacja", "Interpretacja"], [label, interp]],
+        colWidths=[200, 300]
+    )
+    tbl1.setStyle(TableStyle([
+        ('FONT',       (0,0), (-1,-1), FONT_NAME),
+        ('FONTSIZE',   (0,0), (-1,-1), 12),
+        ('ALIGN',      (0,0), (-1,0), 'CENTER'),
+        ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID',       (0,0), (-1,-1), 0.5, colors.black),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+    ]))
+    w1, h1 = tbl1.wrapOn(p, w, h)
+    tbl1.drawOn(p, 50, h - 100 - h1)
+    cursor_y = h - 100 - h1 - 20
+
+    # Metrics list with notes
+    hr_list = data.get("heart_rate", [])
+    hr_mean = sum(hr_list)/len(hr_list) if hr_list else None
+    metrics = [
+        ("Średnie HR (bpm)", hr_mean,      60,   100,   "between",
+         "Norma 60–100 bpm; wskaźnik sprawności układu krążenia."),
+        ("PR (ms)",          data.get("morphology", {}).get("pr_mean_ms"), 120, 200, "between",
+         "Prawidłowy PR: 120–200 ms; dłuższy może wskazywać na blok AV."),
+        ("QRS (ms)",         data.get("morphology", {}).get("qrs_mean_ms"), 70,  100, "between",
+         "Norma QRS: 70–100 ms; szerszy niż 120 ms oznacza szeroki QRS."),
+        ("QT (ms)",          data.get("morphology", {}).get("qt_mean_ms"),  350, None, "lt",
+         "Norma QT: <350 ms (QTc <440 ms mężczyźni, <460 ms kobiety)."),
+        ("SDNN (ms)",        data.get("hrv_time", {}).get("HRV_SDNN"),     50,   None, "gt",
+         "SDNN ≥50 ms – prawidłowa zmienność; <50 ms – podwyższone ryzyko."),
+        ("RMSSD (ms)",       data.get("hrv_time", {}).get("HRV_RMSSD"),    19,   None, "gt",
+         "RMSSD 19–107 ms typowe u dorosłych; <19 ms może wskazywać na autonomiczną dysfunkcję."),
+        ("pNN50 (%)",        data.get("hrv_time", {}).get("HRV_pNN50"),    3,    None, "gt",
+         "pNN50 >3 % – norma; <3 % – obniżona zmienność, ryzyko arytmii."),
+    ]
+
+    # Build metrics table data
+    tbl2_data = [["Parametr", "Wartość", "Norma", "Status"]]
+    abnormal = []
+    def check(val, low, high, cmp):
+        if val is None:
+            return "–", "nieobliczone"
+        if cmp == "between": ok = low <= val <= high
+        elif cmp == "lt":     ok = val < low
+        elif cmp == "gt":     ok = val > low
+        else:                   ok = True
+        return f"{val:.1f}", ("w normie" if ok else "poza normą")
+
+    for name, val, low, high, cmp, note in metrics:
+        disp, status = check(val, low, high, cmp)
+        rng = f"{low}–{high}" if high else ("<"+str(low) if cmp=="lt" else ">"+str(low))
+        tbl2_data.append([name, disp, rng, status])
+        if status == "poza normą":
+            abnormal.append((name, note))
+
+    # Draw metrics table
+    tbl2 = Table(tbl2_data, colWidths=[150, 80, 100, 180])
+    tbl2.setStyle(TableStyle([
+        ('FONT',     (0,0),(-1,-1), FONT_NAME),
+        ('FONTSIZE', (0,0),(-1,-1), 10),
+        ('GRID',     (0,0),(-1,-1), 0.3, colors.black),
+        ('BACKGROUND',(0,0),(-1,0), colors.lightgrey),
+        ('VALIGN',   (0,0),(-1,-1), 'TOP'),
+    ]))
+    w2, h2 = tbl2.wrapOn(p, w, h)
+    tbl2.drawOn(p, 50, cursor_y - h2)
+    cursor_y -= (h2 + 10)
+
+    # Draw metric notes under table, each as a paragraph
+    for nm, note in abnormal:
+        para = Paragraph(f"<b>{nm}</b>: {note}", styles['MetricNote'])
+        w3, h3 = para.wrap(w-100, h)
+        para.drawOn(p, 50, cursor_y - h3)
+        cursor_y -= (h3 + 5)
+
+    # --- Dynamic Summary ---
+    summary_parts = []
+    if not abnormal:
+        summary_text = "Wszystkie metryki mieszczą się w normie."
+    else:
+        metrics_list = ", ".join([nm for nm, _ in abnormal[:3]])
+        tail = f" i {len(abnormal)-3} inne." if len(abnormal)>3 else "."
+        summary_text = f"Parametry poza normą: {metrics_list}{tail} Proszę skonsultować się z lekarzem."
+
+    para_sum = Paragraph(summary_text, styles['Summary'])
+    w4, h4 = para_sum.wrap(w-100, h)
+    para_sum.drawOn(p, 50, cursor_y - h4)
+
+    # Finish up
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+
+    filename = f"Wyniki_{request.user.first_name}_{request.user.last_name}_{exam_date}.pdf"
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+

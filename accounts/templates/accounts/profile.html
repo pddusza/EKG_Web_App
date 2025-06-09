@@ -59,6 +59,34 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
+    .profile-columns {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 900px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .profile-left, .profile-right {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+
+    .profile-left {
+      width: 300px;
+      text-align: center;
+    }
+
+    .profile-right {
+      flex: 1;
+      min-width: 360px;
+    }
+
     form button:hover {
       background-color: #0056b3;
     }
@@ -97,61 +125,30 @@
       transition: transform 0.1s;
     }
     #scaleSlider { width: 100%; margin-bottom: 18px; }
+        .btn-link {
+            background-color: #6c757d;
+            margin-top: 15px;
+        }
+        .btn-link:hover {
+            background-color: #565e64;
+        }
   </style>
 </head>
 <body>
-  <div class="profile-container">
-    <h2>Twój profil</h2>
-
-    {% if form.non_field_errors %}
-      <ul class="errorlist">
-        {% for err in form.non_field_errors %}
-          <li>{{ err }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-
-    <!-- Crop editor -->
-    <div class="crop-frame">
-      <img id="avatarEditor"
-           src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'avatars_users/default.png' %}{% endif %}"
-           alt="Podgląd avatara" />
-    </div>
-    <input type="range" id="scaleSlider" min="50" max="150" value="100">
-
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <div>
-        {{ form.username.label_tag }}<br>
-        {{ form.username }}<br>
-        {{ form.username.errors }}
+  <div class="profile-columns">
+    <div class="profile-left">
+      <!-- Avatar preview and editor -->
+      <div class="crop-frame">
+        <img id="avatarEditor"
+            src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'avatars_users/default.png' %}{% endif %}"
+            alt="Podgląd avatara" />
       </div>
-      <div>
-        {{ form.email.label_tag }}<br>
-        {{ form.email }}<br>
-        {{ form.email.errors }}
-      </div>
-      <div>
-        {{ form.first_name.label_tag }}<br>
-        {{ form.first_name }}<br>
-        {{ form.first_name.errors }}
-      </div>
-      <div>
-        {{ form.last_name.label_tag }}<br>
-        {{ form.last_name }}<br>
-        {{ form.last_name.errors }}
-      </div>
-      <div>
-        {{ form.bio.label_tag }}<br>
-        {{ form.bio }}<br>
-        {{ form.bio.errors }}
-      </div>
-
-      <!-- Current small preview -->
+      <input type="range" id="scaleSlider" min="50" max="150" value="100">
+      
       <div>
         <label>Obecny avatar</label><br>
         <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}{% static 'avatars_users/default.png' %}{% endif %}"
-             class="avatar-preview" alt="Avatar" />
+            class="avatar-preview" alt="Avatar" />
       </div>
 
       <!-- Upload new avatar -->
@@ -160,19 +157,61 @@
         {{ form.avatar_upload }}<br>
         {{ form.avatar_upload.errors }}
       </div>
+    </div>
 
-      <!-- Hidden crop fields -->
-      <input type="hidden" name="offsetX" id="offsetX" value="0">
-      <input type="hidden" name="offsetY" id="offsetY" value="0">
-      <input type="hidden" name="scale"   id="scale"   value="1">
+    <div class="profile-right">
+      <h2>Twój profil</h2>
 
-      <button type="submit">Zapisz</button>
-    </form>
+      {% if form.non_field_errors %}
+        <ul class="errorlist">
+          {% for err in form.non_field_errors %}
+            <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
 
-    <a href="{% url 'accounts:mainscreen' %}" class="back-link">
-      Powrót do ekranu głównego
-    </a>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div>
+          {{ form.username.label_tag }}<br>
+          {{ form.username }}<br>
+          {{ form.username.errors }}
+        </div>
+        <div>
+          {{ form.email.label_tag }}<br>
+          {{ form.email }}<br>
+          {{ form.email.errors }}
+        </div>
+        <div>
+          {{ form.first_name.label_tag }}<br>
+          {{ form.first_name }}<br>
+          {{ form.first_name.errors }}
+        </div>
+        <div>
+          {{ form.last_name.label_tag }}<br>
+          {{ form.last_name }}<br>
+          {{ form.last_name.errors }}
+        </div>
+        <div>
+          {{ form.bio.label_tag }}<br>
+          {{ form.bio }}<br>
+          {{ form.bio.errors }}
+        </div>
+
+        <!-- Hidden crop fields -->
+        <input type="hidden" name="offsetX" id="offsetX" value="0">
+        <input type="hidden" name="offsetY" id="offsetY" value="0">
+        <input type="hidden" name="scale"   id="scale"   value="1">
+
+        <button type="submit">Zapisz</button>
+      </form>
+
+      <a href="{% url 'accounts:mainscreen' %}" class="btn-link">
+        Powrót do ekranu głównego
+      </a>
+    </div>
   </div>
+
 
   <script>
     document.addEventListener('DOMContentLoaded', function(){

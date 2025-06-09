@@ -13,12 +13,24 @@
       padding: 40px 0;
       min-height: 100vh;
     }
+      .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+}
+
     .register-container {
       background: white;
       padding: 30px 40px;
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
-      width: 360px;
+      width: 720px; 
+      max-width: 95vw;
       box-sizing: border-box;
       margin: 0 auto;
     }
@@ -101,60 +113,70 @@
         </ul>
       {% endif %}
 
-      <div>{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
-      <div>{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
-      <div>{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
-      <div>{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
-      <div>{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
-      <div>{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
-      <div>{{ form.pesel.label_tag }}{{ form.pesel }}{{ form.pesel.errors }}</div>
-      <div>{{ form.birth_date.label_tag }}{{ form.birth_date }}{{ form.birth_date.errors }}</div>
-      <div>{{ form.medical_history.label_tag }}{{ form.medical_history }}{{ form.medical_history.errors }}</div>
+      <div class="form-grid">
+        <div class="form-group">{{ form.username.label_tag }}{{ form.username }}{{ form.username.errors }}</div>
+        <div class="form-group">{{ form.email.label_tag }}{{ form.email }}{{ form.email.errors }}</div>
 
-      <!-- Avatar upload -->
-      <div>
-        {{ form.avatar_upload.label_tag }}<br>
-        {{ form.avatar_upload }}<br>
-        {{ form.avatar_upload.errors }}
-      </div>
+        <div class="form-group">{{ form.password1.label_tag }}{{ form.password1 }}{{ form.password1.errors }}</div>
+        <div class="form-group">{{ form.password2.label_tag }}{{ form.password2 }}{{ form.password2.errors }}</div>
 
-      <!-- Stock icons -->
-      <div>
-        <p>Lub wybierz ikonę:</p>
-        <div class="icon-grid">
-          {% for val,label in form.avatar_choice.field.choices %}
-            {% if not forloop.first %}
-              <label>
-                <input type="radio"
-                       name="{{ form.avatar_choice.name }}"
-                       value="{{ val }}"
-                       class="icon-radio"
-                       style="display:none;" />
-                <img src="{{ MEDIA_URL }}avatars/{{ val }}"
-                     alt="{{ label }}"
-                     title="{{ label }}" />
-              </label>
-            {% endif %}
-          {% endfor %}
+        <div class="form-group">{{ form.first_name.label_tag }}{{ form.first_name }}{{ form.first_name.errors }}</div>
+        <div class="form-group">{{ form.last_name.label_tag }}{{ form.last_name }}{{ form.last_name.errors }}</div>
+
+        <div class="form-group">{{ form.pesel.label_tag }}{{ form.pesel }}{{ form.pesel.errors }}</div>
+        <div class="form-group">{{ form.birth_date.label_tag }}{{ form.birth_date }}{{ form.birth_date.errors }}</div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          {{ form.medical_history.label_tag }}{{ form.medical_history }}{{ form.medical_history.errors }}
         </div>
-        {{ form.avatar_choice.errors }}
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          {{ form.avatar_upload.label_tag }}<br>
+          {{ form.avatar_upload }}<br>
+          {{ form.avatar_upload.errors }}
+        </div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <p>Lub wybierz ikonę:</p>
+          <div class="icon-grid">
+            {% for val,label in form.avatar_choice.field.choices %}
+              {% if not forloop.first %}
+                <label>
+                  <input type="radio"
+                        name="{{ form.avatar_choice.name }}"
+                        value="{{ val }}"
+                        class="icon-radio"
+                        style="display:none;" />
+                  <img src="{{ MEDIA_URL }}avatars/{{ val }}"
+                      alt="{{ label }}"
+                      title="{{ label }}" />
+                </label>
+              {% endif %}
+            {% endfor %}
+          </div>
+          {{ form.avatar_choice.errors }}
+        </div>
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <div class="crop-frame">
+            <img id="avatarPreview"
+                src="{{ MEDIA_URL }}avatars/default.png"
+                alt="Podgląd avatara" />
+          </div>
+          <input type="range" id="scaleSlider" min="50" max="150" value="100">
+        </div>
+
+        <!-- Hidden crop parameters -->
+        <input type="hidden" name="offsetX" id="offsetX">
+        <input type="hidden" name="offsetY" id="offsetY">
+        <input type="hidden" name="scale"   id="scale">
+
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <button type="submit">Zarejestruj się</button>
+        </div>
       </div>
-
-      <!-- Crop preview -->
-      <div class="crop-frame">
-        <img id="avatarPreview"
-             src="{{ MEDIA_URL }}avatars/default.png"
-             alt="Podgląd avatara" />
-      </div>
-      <input type="range" id="scaleSlider" min="50" max="150" value="100">
-
-      <!-- Hidden crop parameters -->
-      <input type="hidden" name="offsetX" id="offsetX">
-      <input type="hidden" name="offsetY" id="offsetY">
-      <input type="hidden" name="scale"   id="scale">
-
-      <button type="submit">Zarejestruj się</button>
     </form>
+
     <div class="links">
       Masz już konto? <a href="{% url 'accounts:login' %}">Zaloguj się</a><br>
       <a href="{% url 'accounts:account_type' %}">Powrót do wyboru typu konta</a>

@@ -22,7 +22,7 @@ def run_ecg_analysis(file_path, sampling_rate=100):
     Falls back gracefully on short signals or missing deps.
     """
     try:
-        # 1) Load data robustly (comma or newline) :contentReference[oaicite:5]{index=5}
+        # 1) Load data robustly (comma or newline)
         try:
             signal = np.loadtxt(file_path, delimiter=',')
         except Exception:
@@ -41,18 +41,18 @@ def run_ecg_analysis(file_path, sampling_rate=100):
         }
         result = {'stats': stats}
 
-        # 3) Clean ECG: try BioSPPy → NeuroKit fallback :contentReference[oaicite:6]{index=6}
+        # 3) Clean ECG: try BioSPPy → NeuroKit fallback
         try:
             cleaned = nk.ecg_clean(signal_1lead, sampling_rate=sampling_rate, method='biosppy')
         except Exception:
             cleaned = nk.ecg_clean(signal_1lead, sampling_rate=sampling_rate, method='neurokit')
 
-        # 4) R-peak detection (Pan–Tompkins default) :contentReference[oaicite:7]{index=7}
+        # 4) R-peak detection (Pan–Tompkins default)
         peaks_signals, peaks_info = nk.ecg_peaks(cleaned, sampling_rate=sampling_rate)
         rpeaks = peaks_info.get('ECG_R_Peaks', []).tolist()
         result['rpeaks'] = rpeaks
 
-        # 5) Instantaneous heart rate :contentReference[oaicite:8]{index=8}
+        # 5) Instantaneous heart rate
         hr = nk.ecg_rate(rpeaks, sampling_rate=sampling_rate)
         result['heart_rate'] = hr.tolist() if hr.size else []
 
@@ -66,25 +66,25 @@ def run_ecg_analysis(file_path, sampling_rate=100):
             })
             return result
 
-        # 7) HRV time-domain :contentReference[oaicite:9]{index=9}
+        # 7) HRV time-domain
         hrv_time_df = nk.hrv_time(rpeaks, sampling_rate=sampling_rate, show=False)
         result['hrv_time'] = hrv_time_df.to_dict(orient='records')[0]
 
-        # 8) HRV frequency-domain :contentReference[oaicite:10]{index=10}
+        # 8) HRV frequency-domain
         try:
             hrv_freq_df = nk.hrv_frequency(rpeaks, sampling_rate=sampling_rate, show=False)
             result['hrv_frequency'] = hrv_freq_df.to_dict(orient='records')[0]
         except ModuleNotFoundError:
             result['hrv_frequency'] = {'error': 'PyWavelets not installed'}
 
-        # 9) HRV non-linear :contentReference[oaicite:11]{index=11}
+        # 9) HRV non-linear
         try:
             hrv_nonlin_df = nk.hrv_nonlinear(rpeaks, sampling_rate=sampling_rate, show=False)
             result['hrv_nonlinear'] = hrv_nonlin_df.to_dict(orient='records')[0]
         except ModuleNotFoundError:
             result['hrv_nonlinear'] = {'error': 'PyWavelets not installed'}
 
-        # 10) Morphological delineation: PR, QRS, QT :contentReference[oaicite:12]{index=12}
+        # 10) Morphological delineation: PR, QRS, QT
         try:
             _, delineate_info = nk.ecg_delineate(cleaned, rpeaks, sampling_rate=sampling_rate)
             P_on  = np.array(delineate_info.get('ECG_P_Onsets', []))
@@ -151,8 +151,6 @@ def normalize_signal(sig):
 
 
 # --- 3. Load the model once, with custom_objects for Cast ---
-#    Place your HDF5 (best_ecg_resnet.h5) in the same folder as this file,
-#    or update the path below if you store it elsewhere.
 BASE_DIR = Path(__file__).resolve().parent.parent
 _MODEL_PATH = settings.BASE_DIR / 'ecg' / 'analysis_helper_files' / 'best_ecg_resnet.h5'
 _model = load_model(
