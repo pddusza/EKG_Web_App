@@ -30,6 +30,32 @@
             font-weight: 700;
             text-align: center;
         }
+        /* Messages styling */
+        .messages {
+            margin-bottom: 20px;
+            list-style: none;
+            padding: 0;
+        }
+        .messages li {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .messages li.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .messages li.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .messages li.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
         form {
             display: flex;
             flex-direction: column;
@@ -85,20 +111,31 @@
 <body>
     <div class="container">
         <h1>Dodaj wynik</h1>
+
+        {# Messages block: will show any error, warning, or success messages #}
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">
+                        {{ message }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
         <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        {% for field in form %}
-            <div class="form-group">
-            {{ field.label_tag }}
-            {{ field }}
-            {{ field.errors }}
-            </div>
-        {% endfor %}
-        <button type="submit">Dodaj</button>
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            {% for field in form %}
+                <div class="form-group">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <button type="submit">Dodaj</button>
         </form>
         <a href="{% url 'accounts:mainscreen' %}" class="btn-link">Powrót do ekranu głównego</a>
     </div>
 </body>
 </html>
-

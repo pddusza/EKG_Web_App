@@ -176,14 +176,13 @@ def choose_patient_view(request):
             messages.error(request, "Pacjent o podanym PESELu nie istnieje.")
             return redirect('accounts:choose_patient')
 
-        if profile.doctor is not None:
-            messages.warning(request, "Pacjent jest już przypisany do innego lekarza.")
+        if profile.doctors.filter(pk=request.user.pk).exists():
+            messages.warning(request, "Jesteś już przypisany do tego pacjenta.")
             return redirect('accounts:choose_patient')
 
-        profile.doctor = request.user
-        profile.save()
-        messages.success(request, f"Pacjent z PESEL {pesel} został przypisany do Ciebie.")
-        return redirect('accounts:my_patients')  
+        profile.doctors.add(request.user)
+        messages.success(request, "Pacjent został przypisany pomyślnie.")
+        return redirect('accounts:my_patients')
 
     return render(request, 'accounts/choose_patient.html')
 
@@ -316,11 +315,11 @@ def add_result_view(request):
                 profile = Profile.objects.get(
                     pesel=pesel,
                     is_patient=True,
-                    doctor=request.user
+                    doctors=request.user
                 )
                 patient_user = profile.user
             except Profile.DoesNotExist:
-                form.add_error('pesel', "Pacjent o podanym numerze PESEL nie istnieje.")
+                form.add_error('pesel', "Pacjent o podanym numerze PESEL nie istnieje. Upewnij się czy dobrze wpisałeś PESEL i czy Pacjent jest do ciebie przypisany")
                 return render(request, 'accounts/add_result.html', {'form': form})
 
             # --- 2) save the CSVResult for that patient ---
@@ -378,7 +377,7 @@ def your_results_view(request):
             profile = Profile.objects.get(
                 user__id=patient_id,
                 is_patient=True,
-                doctor=request.user
+                doctors=request.user
             )
             owner = profile.user
         except Profile.DoesNotExist:
@@ -446,7 +445,7 @@ def result_detail_view(request, pk):
         result = get_object_or_404(
             CSVResult,
             pk=pk,
-            owner__profile__doctor=user
+            owner__profile__doctors=user
         )
     else:
         result = get_object_or_404(CSVResult, pk=pk, owner=user)
@@ -509,7 +508,7 @@ def my_patients_view(request):
     # only patients assigned to this doctor
     qs = Profile.objects.filter(
         is_patient=True,
-        doctor=request.user
+        doctors=request.user
     )
     if pesel_filter:
         qs = qs.filter(pesel__icontains=pesel_filter)

@@ -27,9 +27,9 @@ class Profile(models.Model):
     is_doctor        = models.BooleanField(default=False)
     is_admin         = models.BooleanField(default=False)
 
-    # ← link each patient to their doctor
-    doctor           = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='patients')
-
+    # ← link each patient to their doctor/doctors
+    doctors    = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='patients')
+    
     def __str__(self):
         return f"{self.user.username} Profile"
 
