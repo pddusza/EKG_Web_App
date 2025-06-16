@@ -20,13 +20,17 @@ A simple Django web application for uploading ECG signal files, running ML-based
 
 ## Prerequisites
 
-* **Python 3.8+** installed (download from [python.org](https://www.python.org/downloads)).
-* **MySQL** server installed and running. Download the installer from [MySQL Downloads](https://dev.mysql.com/downloads/installer/).
+Before you begin, ensure you have the following installed and configured on your system:
+
+* **Python 3.12** (download from [python.org](https://www.python.org/downloads)).
+* **MySQL Server**: Install from [MySQL Downloads](https://dev.mysql.com/downloads/installer/), and ensure the service is running.
 * **Virtual environment** tool (included with Python).
 
 ---
 
 ## Installation
+
+Follow these steps to set up the project locally:
 
 1. **Clone the repository**
 
@@ -34,33 +38,56 @@ A simple Django web application for uploading ECG signal files, running ML-based
    git clone https://github.com/your-username/ecg-django-app.git
    cd ecg-django-app
    ```
-2. **Create a virtual environment** (if not already created)
+2. **Install MySQL** (if not already installed)
 
-   ```bash
-   py -m venv venv
-   ```
-3. **Activate the virtual environment**
+   * Download and run the MySQL Installer from [https://dev.mysql.com/downloads/installer/](https://dev.mysql.com/downloads/installer/)
+   * During setup, create a root user with a strong password (or note your own credentials for later).
+3. **Set up the MySQL user and database**
 
-   * On Windows (PowerShell):
-
-     ```powershell
-     .\venv\Scripts\Activate.ps1
-     ```
-   * On Windows (CMD):
-
-     ```cmd
-     .\venv\Scripts\activate.bat
-     ```
-   * On macOS/Linux:
+   * Log in to MySQL:
 
      ```bash
-     source venv/bin/activate
+     mysql -u root -p
      ```
-4. **Install dependencies**
+   * Create the database:
+
+     ```sql
+     CREATE DATABASE ecgdb;
+     ```
+   * Grant privileges (if using a custom user):
+
+     ```sql
+     GRANT ALL PRIVILEGES ON ecgdb.* TO 'root'@'localhost' IDENTIFIED BY 'strong_password';
+     FLUSH PRIVILEGES;
+     ```
+4. **Create and activate a virtual environment**
 
    ```bash
-   pip install Django mysqlclient colorama
+   # On Windows (PowerShell)
+   py -m venv venv
+   .\venv\Scripts\Activate.ps1
+
+   # On Windows (CMD)
+   py -m venv venv
+   .\venv\Scripts\activate.bat
+
+   # On macOS/Linux
+   python3 -m venv venv
+   source venv/bin/activate
    ```
+5. **Install project dependencies**
+
+   ```bash
+   pip install Django mysqlclient colorama neurokit2 numpy PyWavelets tensorflow reportlab openpyxl
+   ```
+   or
+   ```bash
+   py -m pip Django mysqlclient colorama neurokit2 numpy PyWavelets tensorflow reportlab openpyxl
+   ```
+7. **Verify installations**
+
+   * Django: `python -m django --version`
+   * MySQL client: attempt `pip show mysqlclient`
 
 ---
 
@@ -69,7 +96,7 @@ A simple Django web application for uploading ECG signal files, running ML-based
 1. **Database settings**
 
    * Open `webowe/settings.py`.
-   * Under the `DATABASES` section, configure your MySQL credentials:
+   * Under the `DATABASES` section, update your credentials:
 
      ```python
      DATABASES = {
@@ -97,34 +124,52 @@ A simple Django web application for uploading ECG signal files, running ML-based
 
 ## Database Setup & Migrations
 
+Run the following commands to prepare the database schema:
+
 1. **Create migrations**
 
    ```bash
-   python manage.py makemigrations accounts ecg
+   python manage.py makemigrations
    ```
-2. **Apply migrations**
+   or
+   ```bash
+   py -m manage makemigrations
+   ```
+3. **Apply migrations**
 
    ```bash
    python manage.py migrate
+   ```
+    or
+   ```bash
+   py -m manage migrate
    ```
 
 ---
 
 ## Running the Development Server
 
+Start the Django development server:
+
 ```bash
 python manage.py runserver
 ```
+ or
+   ```bash
+   py -m manage runserver
+   ```
 
-Visit: [http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/)
+Then visit:
+
+[http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/)
 
 ---
 
 ## Usage
 
-1. **Register or login** at `/login/`.
+1. **Register or log in** at `/login/`.
 2. **Upload an ECG file** via the "Dodaj wynik" page.
-3. **View your results** on "Twoje wyniki", click a title to see detailed analysis.
+3. **View your results** on "Twoje wyniki"; click a title to see detailed analysis.
 
 ---
 
@@ -135,7 +180,7 @@ Visit: [http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/)
 ├── ecg/                 # ECGSignal, AnalysisResult models, ML code
 ├── webowe/              # Django project settings & URLs
 ├── media/               # Uploaded files
-├── templates/           # HTML templates
+├── reports/             # Section for reports / fonts
 └── manage.py            # Django management script
 ```
 
@@ -144,35 +189,24 @@ Visit: [http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/)
 ## Troubleshooting
 
 * **`ModuleNotFoundError: No module named 'mysqlclient'`**
-  Install with `pip install mysqlclient`.
+
+  * Ensure `mysqlclient` is installed: `pip install mysqlclient`.
 * **Media files not served**
-  Ensure `DEBUG = True` and `urlpatterns += static(...)` in `webowe/urls.py`.
+
+  * Confirm `DEBUG = True` in `webowe/settings.py` and add:
+
+    ```python
+    from django.conf import settings
+    from django.conf.urls.static import static
+
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    ```
 * **AttributeError: 'CSVResult' object has no attribute 'analysis'**
-  Run migrations after adding `analysis = JSONField(...)` in your model.
+
+  * Add `analysis = JSONField(...)` in your `CSVResult` model and re-run migrations.
 
 ---
 
 ## License
 
 MIT License © 2025 pddusza
-
-
-
-
-
-## Simple Outline
-
-
-To run the program locally: 
-1. Install MySql https://dev.mysql.com/downloads/installer/
-2. Set up the MySQL user as root, and password as strong_password (otherwise change in the webowe/settings.py file of the project)
-3. Open terminal powershell -> Navigate to working directory of this project (cd folder_path)
-4. If not existing, create a python environment -> py -m venv WEB_ECG_ENV
-5. Activate the venv -> .\WEB_ECG_ENV\Scripts\activate.bat
-6. Install Django -> py -m pip install Django
-7. Install Colorama ->  py -m pip install "colorama >= 0.4.6"
-8. Install For signal analysis -> py -m pip install neurokit2 numpy PyWavelets tensorflow reportlab openpyxl
-9. Install MySQLClient -> py -m pip install mysqlclient
-10. Still run migrations in order to create the SQL Database -> py -m manage makemigrations accounts ecg; py -m manage migrate
-11. Still in the working directory of this project run ->  py -m manage runserver
-12. Please visit this url to see the project: "http://127.0.0.1:8000/login/"
