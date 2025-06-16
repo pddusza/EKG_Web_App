@@ -20,7 +20,7 @@ class CustomUserCreationForm(UserCreationForm):
     last_name       = forms.CharField(required=False)
 
     # patient-only
-    pesel           = forms.CharField(required=False)
+    pesel           = forms.CharField(required=True)
     birth_date      = forms.DateField(
                          required=False,
                          widget=forms.DateInput(attrs={'type': 'date'})
@@ -65,9 +65,30 @@ class CustomUserCreationForm(UserCreationForm):
         return email
 
     def clean_pesel(self):
-        pesel = self.cleaned_data.get('pesel', '')
-        if pesel and (not pesel.isdigit() or len(pesel) != 11):
-            raise forms.ValidationError("Numer PESEL musi składać się z 11 cyfr.")
+        pesel = self.cleaned_data.get('pesel', '').strip()
+        if not pesel:
+            return pesel
+
+        # must be exactly 11 digits
+        if not pesel.isdigit() or len(pesel) != 11:
+            raise forms.ValidationError("Numer PESEL musi składać się z dokładnie 11 cyfr.")
+
+        # weights for positions 0–9
+        weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]
+        total = sum(int(pesel[i]) * weights[i] for i in range(10))
+
+        # compute control digit: subtract last digit of total from 10, mod 10
+        control_digit = (10 - (total % 10)) % 10
+
+        if control_digit != int(pesel[10]):
+            raise forms.ValidationError(
+                "Niepoprawny numer PESEL (błędna suma kontrolna). "
+                "Proszę podać prawidłowy numer PESEL."
+            )
+
+        if Profile.objects.filter(pesel=pesel).exists():
+            raise forms.ValidationError("Pacjent z tym numerem PESEL już istnieje.")
+
         return pesel
 
     def clean_avatar_upload(self):
@@ -115,6 +136,12 @@ class ProfileForm(forms.ModelForm):
         if img and img.size > 1024*1024:
             raise forms.ValidationError("Plik jest za duży (maks. 1 MB).")
         return img
+        
+    def clean_license_number(self):
+        license_number = self.cleaned_data.get("license_number")
+        if Profile.objects.filter(license_number=license_number).exists():
+            raise forms.ValidationError("Ten numer prawa wykonywania zawodu jest już zarejestrowany.")
+        return license_number
 
 class CSVResultForm(forms.ModelForm):
     pesel = forms.CharField(

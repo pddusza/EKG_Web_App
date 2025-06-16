@@ -84,19 +84,19 @@
 .btn-link:hover {
     background-color: #565e64;
 }
-
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Wybierz pacjenta</h2>
             <form method="post" action="">
-                {% csrf_token %}
-                <label for="pesel">Wyszukaj po numerze PESEL:</label>
-                <input type="text" id="pesel" name="pesel" placeholder="Wpisz PESEL pacjenta" maxlength="11">
-                <button type="submit">Przypisz pacjenta</button>
-                <button type="submit">Przejdź do wyników</button>
-            </form>
+    {% csrf_token %}
+    <label for="pesel">Wyszukaj po numerze PESEL:</label>
+    <input type="text" id="pesel" name="pesel" placeholder="Wpisz PESEL pacjenta" maxlength="11">
+    
+    <button type="submit" name="action" value="assign">Przypisz pacjenta</button>
+    <button type="submit" name="action" value="go_to_results">Przejdź do wyników</button>
+</form>
 
             {% if messages %}
                 <ul>
@@ -108,7 +108,8 @@
                 </ul>
             {% endif %}
        <a href="{% url 'accounts:mainscreen' %}" class="btn-link">Powrót do menu głównego</a>
-    </div>
+       
+    </div>  
 </body>
 </html>
 

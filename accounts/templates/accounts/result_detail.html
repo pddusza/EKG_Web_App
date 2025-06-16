@@ -253,7 +253,7 @@
         {% endif %}
 
         <a href="{{ result.csv_file.url }}" download class="download-btn">Pobierz oryginalny plik</a>
-        <a href="{% url 'accounts:your_results' %}" class="back-btn">← Powrót do listy wyników</a>
+        <a href="{% url 'accounts:mainscreen' %}" class="back-btn">← Powrót do menu głównego</a>
     </div>
 
     {% if user.profile.is_doctor %}

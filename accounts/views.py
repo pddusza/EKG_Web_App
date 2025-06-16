@@ -63,7 +63,6 @@ def login_view(request):
         form = AuthenticationForm()
     return render(request, 'accounts/login.html', {'form': form})
 
-
 def register(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST, request.FILES)
@@ -116,6 +115,7 @@ def profile_view(request):
                      'offsetX':  0,'offsetY':0,'scale':1.0},
             instance=profile
         )
+    
     return render(request, 'accounts/profile.html', {'form': form, 'profile': profile})
 
 def _crop_and_save(profile, offsetX, offsetY, scale):
@@ -156,6 +156,7 @@ def _crop_and_save(profile, offsetX, offsetY, scale):
 
 
 def settings_view(request):
+   
     return render(request, 'accounts/settings.html')
 
 def your_results_view(request):
@@ -168,23 +169,30 @@ def account_type_view(request):
 @login_required
 def choose_patient_view(request):
     if request.method == 'POST':
-        pesel = request.POST.get('pesel')
+        action = request.POST.get('action')
 
-        try:
-            profile = Profile.objects.get(pesel=pesel, is_patient=True)
-        except Profile.DoesNotExist:
-            messages.error(request, "Pacjent o podanym PESELu nie istnieje.")
-            return redirect('accounts:choose_patient')
+        if action == 'go_to_results':
+            return redirect('accounts:my_patients')
 
-        if profile.doctors.filter(pk=request.user.pk).exists():
-            messages.warning(request, "Jesteś już przypisany do tego pacjenta.")
-            return redirect('accounts:choose_patient')
+        elif action == 'assign':
+            pesel = request.POST.get('pesel')
 
-        profile.doctors.add(request.user)
-        messages.success(request, "Pacjent został przypisany pomyślnie.")
-        return redirect('accounts:my_patients')
+            try:
+                profile = Profile.objects.get(pesel=pesel, is_patient=True)
+            except Profile.DoesNotExist:
+                messages.error(request, "Pacjent o podanym PESELu nie istnieje.")
+                return redirect('accounts:choose_patient')
+
+            if profile.doctors.filter(pk=request.user.pk).exists():
+                messages.warning(request, "Jesteś już przypisany do tego pacjenta.")
+                return redirect('accounts:choose_patient')
+
+            profile.doctors.add(request.user)
+            messages.success(request, "Pacjent został przypisany pomyślnie.")
+            
 
     return render(request, 'accounts/choose_patient.html')
+
 
 def register_patient_view(request):
     if request.method == "POST":
@@ -232,6 +240,7 @@ def register_patient_view(request):
             profile.save()
 
             auth_login(request, user)
+            messages.success(request, "Konto zostało utworzone pomyślnie.")
             return redirect("accounts:login")
     else:
         form = CustomUserCreationForm()
@@ -282,8 +291,8 @@ def register_doctor_view(request):
 
             _crop_and_save(profile, offsetX, offsetY, scale)
             profile.save()
-
             auth_login(request, user)
+            messages.success(request, "Konto zostało utworzone pomyślnie.")
             return redirect("accounts:login")
     else:
         form = CustomUserCreationForm()
@@ -358,11 +367,9 @@ def add_result_view(request):
                 signal=ecg_signal,
                 result_json=clean_stats
             )
-
-            return redirect('accounts:your_results')
+            messages.success(request, "Pacjent został przypisany pomyślnie.")
     else:
         form = CSVResultForm()
-
     return render(request, 'accounts/add_result.html', {'form': form})
 
 @login_required
@@ -438,6 +445,7 @@ def result_detail_view(request, pk):
     Patients may only see their own results.
     Doctors may see results for any patient assigned to them.
     """
+    patient_id = request.GET.get('patient_id')
     user = request.user
     # Determine which CSVResult to fetch
     if hasattr(user, 'profile') and user.profile.is_doctor:
@@ -493,6 +501,7 @@ def result_detail_view(request, pk):
         'hrv_nonlinear':hrv_nonlinear,
         'morphology':   morphology,
         'classification': classification,
+        'patient_id': patient_id,
     })
 
 def is_doctor(user):
@@ -505,6 +514,8 @@ def is_patient(user):
 @login_required
 def my_patients_view(request):
     pesel_filter = request.GET.get('pesel', '')
+    first_name = request.GET.get('first_name', '')
+    last_name = request.GET.get('last_name', '')
     # only patients assigned to this doctor
     qs = Profile.objects.filter(
         is_patient=True,
@@ -512,12 +523,23 @@ def my_patients_view(request):
     )
     if pesel_filter:
         qs = qs.filter(pesel__icontains=pesel_filter)
+    if first_name:
+        qs = qs.filter(user__first_name__icontains=first_name)
+    if last_name:
+        qs = qs.filter(user__last_name__icontains=last_name)
+
+    paginator = Paginator(qs, 5)  # 5 pacjentów na stronę
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     return render(request, 'accounts/my_patients.html', {
         'patients':    qs,
-        'pesel_filter': pesel_filter
+        'page_obj': page_obj,
+        'pesel_filter': pesel_filter,
+        'first_name_filter': first_name,
+        'last_name_filter': last_name,
     })
 
-\
+
 @login_required
 def download_my_results_xlsx(request, pk):
     # — Permission logic —

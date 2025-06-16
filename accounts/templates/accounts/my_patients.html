@@ -94,6 +94,31 @@
         button:hover {
             background-color: #0056b3;
         }
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+    gap: 20px;
+}
+
+.pagination a,
+.pagination span {
+    padding: 10px 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.pagination a {
+    background-color: #007bff;
+    color: white;
+}
+
+.pagination span.disabled {
+    background-color: #ccc;
+    color: white;
+    cursor: not-allowed;
+}
 
         a.back-btn {
             display: block;
@@ -162,14 +187,42 @@
 <body>
     <div class="layout">
         <div class="sidebar">
-            <form method="get" action="" style="margin-bottom: 30px; display: flex; gap: 10px;">
-                <input type="text" name="pesel" placeholder="Filtruj po PESELu" 
-                    value="{{ pesel_filter|default_if_none:'' }}" style="padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc;">
-                <button type="submit" 
-                        style="background-color: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                    Filtruj
-                </button>
-            </form>
+           <form method="get" action="" style="margin-bottom: 30px; display: flex; flex-direction: column; gap: 10px;">
+    <input type="text" name="pesel" placeholder="Filtruj po PESELu" 
+           value="{{ pesel_filter|default_if_none:'' }}" 
+           style="padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc;">
+    
+    <input type="text" name="first_name" placeholder="Filtruj po imieniu" 
+           value="{{ first_name_filter|default_if_none:'' }}" 
+           style="padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc;">
+
+    <input type="text" name="last_name" placeholder="Filtruj po nazwisku" 
+           value="{{ last_name_filter|default_if_none:'' }}" 
+           style="padding: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc;">
+{% if page_obj %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if pesel_filter %}&pesel={{ pesel_filter }}{% endif %}{% if first_name_filter %}&first_name={{ first_name_filter }}{% endif %}{% if last_name_filter %}&last_name={{ last_name_filter }}{% endif %}">←</a>
+    {% else %}
+        <span class="disabled">←</span>
+    {% endif %}
+
+    <span>Strona {{ page_obj.number }}</span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if pesel_filter %}&pesel={{ pesel_filter }}{% endif %}{% if first_name_filter %}&first_name={{ first_name_filter }}{% endif %}{% if last_name_filter %}&last_name={{ last_name_filter }}{% endif %}">→</a>
+    {% else %}
+        <span class="disabled">→</span>
+    {% endif %}
+</div>
+{% endif %}
+
+    <button type="submit" 
+            style="background-color: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        Filtruj
+    </button>
+</form>
+
             <a href="{% url 'accounts:mainscreen' %}" class="back-btn">Powrót do ekranu głównego</a>
         </div>
 
@@ -178,15 +231,16 @@
             {% if patients %}
                 <ul class="patient-list">
                     {% for patient in patients %}
-                        <li class="patient-item">
-                            <span class="patient-name">
-                                PESEL: {{ patient.pesel }}<br>
-                            </span>
-                            <a class="view-link"
-                               href="{% url 'accounts:your_results' %}?patient_id={{ patient.user.id }}">
-                                Zobacz wyniki
-                            </a>
-                        </li>
+                    <li class="patient-item">
+                        <span class="patient-name">
+                            {{ patient.user.first_name }} {{ patient.user.last_name }}<br>
+                            PESEL: {{ patient.pesel }}
+                        </span>
+                        <a class="view-link"
+                        href="{% url 'accounts:your_results' %}?patient_id={{ patient.user.id }}">
+                            Zobacz wyniki
+                        </a>
+                    </li>
                     {% endfor %}
                 </ul>
             {% else %}
