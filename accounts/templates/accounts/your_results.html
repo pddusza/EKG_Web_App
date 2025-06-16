@@ -238,7 +238,7 @@
             <form method="get" action="">
                 <input type="hidden" name="patient_id" value="{{ patient_id }}">
                 <input type="number" name="record_number" placeholder="Filtruj po numerze rekordu" min="1" value="{{ record_number }}">
-                <input type="text" name="name" placeholder="Filtruj po nazwie" value="{{ name }}">
+                <input type="text" name="name" placeholder="Filtruj po nazwie" value="{{ name|default_if_none:'' }}">
                 <button type="submit">Filtruj</button>
             </form>
 

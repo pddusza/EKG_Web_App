@@ -37,12 +37,10 @@ from .models                  import CSVResult
 import math
 
 
-# Register a Unicode font for Polish characters
 FONT_NAME = "DejaVuSans"
 FONT_PATH = os.path.join(settings.BASE_DIR, "reports", "fonts", "DejaVuSans.ttf")
 pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
 
-# Define paragraph styles
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name='MetricNote', fontName=FONT_NAME, fontSize=8, leading=10, leftIndent=10, rightIndent=10))
 styles.add(ParagraphStyle(name='Summary', fontName=FONT_NAME, fontSize=10, leading=12))
@@ -67,7 +65,7 @@ def register(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()            # <-- writes to auth_user
+            user = form.save()            
             auth_login(request, user)
             return redirect("accounts:login")
     else:
@@ -91,17 +89,17 @@ def profile_view(request):
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
-            # Update User
+            
             user.username = form.cleaned_data['username']
             user.email    = form.cleaned_data['email']
             user.save()
-            # Save Profile fields
+            
             profile = form.save(commit=False)
             avatar_file = form.cleaned_data.get('avatar_upload')
             if avatar_file:
                 profile.avatar = avatar_file
             profile.save()
-            # Crop
+            
             offsetX = form.cleaned_data['offsetX']
             offsetY = form.cleaned_data['offsetY']
             scale   = form.cleaned_data['scale']
@@ -125,12 +123,11 @@ def _crop_and_save(profile, offsetX, offsetY, scale):
     """
     img_path = profile.avatar.path
     with Image.open(img_path) as img:
-        # 1) Resize
+        
         new_w = int(img.width * scale)
         new_h = int(img.height * scale)
         img = img.resize((new_w, new_h), Image.LANCZOS)
 
-        # 2) Centered crop box + offsets
         frame = 120
         cx = new_w//2 + offsetX
         cy = new_h//2 + offsetY
@@ -140,15 +137,12 @@ def _crop_and_save(profile, offsetX, offsetY, scale):
         bottom = min(new_h, top  + frame)
         cropped = img.crop((left, top, right, bottom))
 
-        # 3) Write into buffer
         buf = io.BytesIO()
         cropped.save(buf, format='PNG')
         buf.seek(0)
 
-        # 4) New UUID file path
         fname = f"{uuid.uuid4().hex}.png"
 
-        # 5) Remove old file & save new one
         profile.avatar.delete(save=False)
         profile.avatar.save(fname,ContentFile(buf.read()),save=False)
 
@@ -195,11 +189,10 @@ def register_patient_view(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            # 1) Create user & get profile
+            
             user    = form.save()
             profile = user.profile
 
-            # 2) Populate patient fields...
             profile.first_name      = form.cleaned_data['first_name']
             profile.last_name       = form.cleaned_data['last_name']
             profile.pesel           = form.cleaned_data['pesel']
@@ -207,25 +200,22 @@ def register_patient_view(request):
             profile.medical_history = form.cleaned_data['medical_history']
             profile.save()
 
-            # 3) Determine raw avatar content: upload or stock
             upload = form.cleaned_data['avatar_upload']
             choice = form.cleaned_data['avatar_choice']
             if upload:
                 raw = upload.read()
                 ext = os.path.splitext(upload.name)[1]
             else:
-                # stock path must include the avatars folder
+                
                 stock_path = os.path.join(settings.MEDIA_ROOT, 'avatars', choice)
                 with open(stock_path, 'rb') as f:
                     raw = f.read()
                 ext = os.path.splitext(choice)[1]
 
-            # 2) Save raw into avatars_users/<uuid>.ext
             fname = f"{uuid.uuid4().hex}{ext}"
             profile.avatar.save(fname, ContentFile(raw), save=False)
             profile.save()
 
-            # 3) Crop per hidden inputs
             try:
                 scale   = float(request.POST.get('scale', 1.0))
                 offsetX = int(request.POST.get('offsetX', 0))
@@ -248,22 +238,19 @@ def register_doctor_view(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            # 1) Create user & get profile
+            
             user    = form.save()
             profile = user.profile
 
-            # 2) Populate doctor fields...
             profile.first_name     = form.cleaned_data['first_name']
             profile.last_name      = form.cleaned_data['last_name']
             profile.license_number = form.cleaned_data['license_number']
             profile.bio            = form.cleaned_data['bio']
-            # mark roles
             profile.is_patient = False
             profile.is_doctor  = True
             profile.is_admin   = True
             profile.save()
 
-            # 3) Determine raw avatar bytes
             upload = form.cleaned_data['avatar_upload']
             choice = form.cleaned_data['avatar_choice']
             if upload:
@@ -315,7 +302,7 @@ def add_result_view(request):
     if request.method == 'POST':
         form = CSVResultForm(request.POST, request.FILES)
         if form.is_valid():
-            # --- 1) find patient by PESEL under this doctor ---
+            
             pesel = form.cleaned_data['pesel']
             try:
                 profile = Profile.objects.get(
@@ -328,12 +315,10 @@ def add_result_view(request):
                 form.add_error('pesel', "Pacjent o podanym numerze PESEL nie istnieje. Upewnij się czy dobrze wpisałeś PESEL i czy Pacjent jest do ciebie przypisany")
                 return render(request, 'accounts/add_result.html', {'form': form})
 
-            # --- 2) save the CSVResult for that patient ---
             result = form.save(commit=False)
             result.owner = patient_user
             result.save()
 
-            # --- 3) run ECG analysis & classification ---
             raw_stats = run_ecg_analysis(result.csv_file.path)
             try:
                 classification = predict_from_csv(result.csv_file.path)
@@ -341,7 +326,6 @@ def add_result_view(request):
                 classification = {'error': str(e)}
             raw_stats['classification'] = classification
 
-            # sanitize NaN/Inf → None
             def _sanitize(obj):
                 if isinstance(obj, dict):
                     return {k:_sanitize(v) for k,v in obj.items()}
@@ -355,7 +339,6 @@ def add_result_view(request):
             result.analysis = clean_stats
             result.save()
 
-            # mirror into ecg app
             ecg_signal = ECGSignal.objects.create(
                 owner=patient_user,
                 file=result.csv_file
@@ -371,10 +354,9 @@ def add_result_view(request):
 
 @login_required
 def your_results_view(request):
-    # default owner is the logged-in user
+    
     owner = request.user
 
-    # if doctor is viewing a specific patient
     patient_id = request.GET.get('patient_id')
     if patient_id and request.user.profile.is_doctor:
         try:
@@ -394,7 +376,6 @@ def your_results_view(request):
     if name_filter:
         qs = qs.filter(title__icontains=name_filter)
 
-    # fetch ML stats
     results = []
     for r in qs:
         try:
@@ -406,7 +387,6 @@ def your_results_view(request):
         r.ml_stats = stats
         results.append(r)
 
-    # record_number override (no pagination)
     record_number = request.GET.get('record_number')
     if record_number:
         try:
@@ -427,7 +407,6 @@ def your_results_view(request):
             'record_number': record_number,
         })
 
-    # pagination (3 per page)
     paginator   = Paginator(results, 3)
     page_number = request.GET.get('page', 1)
     page_obj    = paginator.get_page(page_number)
@@ -452,9 +431,9 @@ def result_detail_view(request, pk):
     """
     patient_id = request.GET.get('patient_id')
     user = request.user
-    # Determine which CSVResult to fetch
+  
     if hasattr(user, 'profile') and user.profile.is_doctor:
-        # Doctor: allow if result.owner.profile.doctor == request.user
+       
         result = get_object_or_404(
             CSVResult,
             pk=pk,
@@ -463,7 +442,6 @@ def result_detail_view(request, pk):
     else:
         result = get_object_or_404(CSVResult, pk=pk, owner=user)
 
-    # Load raw samples for the signal chart
     samples = []
     try:
         with open(result.csv_file.path, newline='') as f:
@@ -485,7 +463,6 @@ def result_detail_view(request, pk):
     except ECGSignal.DoesNotExist:
         analysis = {}
 
-    # Unpack fields for template
     stats          = analysis.get('stats', {})
     classification = analysis.get('classification', {})
     rpeaks         = analysis.get('rpeaks', [])
@@ -521,7 +498,7 @@ def my_patients_view(request):
     pesel_filter = request.GET.get('pesel', '')
     first_name = request.GET.get('first_name', '')
     last_name = request.GET.get('last_name', '')
-    # only patients assigned to this doctor
+
     qs = Profile.objects.filter(
         is_patient=True,
         doctors=request.user
@@ -533,7 +510,7 @@ def my_patients_view(request):
     if last_name:
         qs = qs.filter(user__last_name__icontains=last_name)
 
-    paginator = Paginator(qs, 5)  # 5 pacjentów na stronę
+    paginator = Paginator(qs, 5) 
     page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'accounts/my_patients.html', {
@@ -547,7 +524,7 @@ def my_patients_view(request):
 
 @login_required
 def download_my_results_xlsx(request, pk):
-    # — Permission logic —
+
     if hasattr(request.user, 'profile') and request.user.profile.is_doctor:
         result = get_object_or_404(
             CSVResult, pk=pk,
@@ -561,7 +538,6 @@ def download_my_results_xlsx(request, pk):
     ws.title = "Wyniki i surowe dane"
     row = 1
 
-    # 1) Metadata + Średnie HR
     hr_list = (result.analysis or {}).get("heart_rate", [])
     avg_hr   = sum(hr_list)/len(hr_list) if hr_list else None
     meta = [
@@ -584,29 +560,25 @@ def download_my_results_xlsx(request, pk):
         row += 1
     row += 1
 
-    # 2) Raw CSV marker
     start_raw = row
     ws.cell(row=row, column=1, value="--- Surowe dane CSV ---")
     row += 1
 
-    # 3) Dump CSV with numeric casting
     with result.csv_file.open("rb") as f:
         text_stream = io.TextIOWrapper(f, encoding="utf-8", newline="")
         reader = csv.reader(text_stream, delimiter=',')
-        # get first row to count leads
+       
         try:
             first_row = next(reader)
         except StopIteration:
             first_row = []
         num_leads = len(first_row)
 
-        # write header
         ws.cell(row=row, column=1, value="Index")
         for i in range(1, num_leads+1):
             ws.cell(row=row, column=1+i, value=f"Lead_{i}")
         row += 1
 
-        # write first data row
         idx = 1
         ws.cell(row=row, column=1, value=idx)
         for col_idx, raw in enumerate(first_row, start=2):
@@ -618,7 +590,6 @@ def download_my_results_xlsx(request, pk):
         row += 1
         idx += 1
 
-        # write rest
         for data_row in reader:
             ws.cell(row=row, column=1, value=idx)
             for col_idx, raw in enumerate(data_row, start=2):
@@ -630,7 +601,6 @@ def download_my_results_xlsx(request, pk):
             row += 1
             idx += 1
 
-    # 4) Build chart using header row for series names
     header_row     = start_raw + 1
     first_data_row = header_row + 1
     last_data_row  = row - 1
@@ -662,7 +632,6 @@ def download_my_results_xlsx(request, pk):
     insert_col = last_lead_col + 2
     ws.add_chart(chart, f"{chr(64 + insert_col)}{start_raw}")
 
-    # 5) Stream back
     out = io.BytesIO()
     wb.save(out)
     out.seek(0)

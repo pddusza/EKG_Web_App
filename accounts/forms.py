@@ -4,8 +4,6 @@ from django.contrib.auth.models import User
 from .models import CSVResult, Profile
 from datetime import date
 
-
-# List of bundled static icons here (filenames under static/avatars/)
 ICON_CHOICES = [
     ('icon1.jpg', 'Ikona 1'),
     ('icon2.jpg', 'Ikona 2'),
@@ -19,7 +17,7 @@ class CustomUserCreationForm(UserCreationForm):
     first_name      = forms.CharField(required=False)
     last_name       = forms.CharField(required=False)
 
-    # patient-only
+    
     pesel           = forms.CharField(required=True)
     birth_date      = forms.DateField(
                          required=False,
@@ -30,14 +28,12 @@ class CustomUserCreationForm(UserCreationForm):
                          widget=forms.Textarea(attrs={'rows': 3})
                      )
 
-    # doctor-only
     license_number  = forms.CharField(required=False)
     bio             = forms.CharField(
                          required=False,
                          widget=forms.Textarea(attrs={'rows': 3})
                      )
 
-    # avatar fields
     avatar_upload   = forms.ImageField(
                          required=False,
                          help_text="Plik max. 1 MB"
@@ -69,15 +65,12 @@ class CustomUserCreationForm(UserCreationForm):
         if not pesel:
             return pesel
 
-        # must be exactly 11 digits
         if not pesel.isdigit() or len(pesel) != 11:
             raise forms.ValidationError("Numer PESEL musi składać się z dokładnie 11 cyfr.")
 
-        # weights for positions 0–9
         weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]
         total = sum(int(pesel[i]) * weights[i] for i in range(10))
 
-        # compute control digit: subtract last digit of total from 10, mod 10
         control_digit = (10 - (total % 10)) % 10
 
         if control_digit != int(pesel[10]):
@@ -99,18 +92,16 @@ class CustomUserCreationForm(UserCreationForm):
 
 
 class ProfileForm(forms.ModelForm):
-    # Include User fields with validation
+
     username      = forms.CharField(max_length=150, required=True)
     email         = forms.EmailField(required=True)
 
-    # File upload for new avatar
     avatar_upload = forms.ImageField(
         required=False,
         label="Nowy avatar",
         help_text="Plik max 1 MB"
     )
 
-    # Hidden crop data
     offsetX = forms.IntegerField(widget=forms.HiddenInput())
     offsetY = forms.IntegerField(widget=forms.HiddenInput())
     scale   = forms.FloatField(widget=forms.HiddenInput())
