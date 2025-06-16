@@ -6,6 +6,7 @@ User = get_user_model()
 class ECGSignal(models.Model):
     owner       = models.ForeignKey(User, on_delete=models.CASCADE)
     file        = models.FileField(upload_to='ecg_signals/')
+    sampling_rate = models.PositiveIntegerField("Sampling rate (Hz)", default=100, help_text="If provided on upload, overrides the default 100 Hz." )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

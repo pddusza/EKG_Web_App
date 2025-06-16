@@ -6,12 +6,12 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.models import load_model
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, resample
 from tensorflow.keras.utils import register_keras_serializable
 from django.conf import settings
 from pathlib import Path
 
-def run_ecg_analysis(file_path, sampling_rate=100):
+def run_ecg_analysis(file_path: str, sampling_rate: int = 100):
     """
     Reads an ECG file (CSV/plain-text/JSON), robustly parses it,
     and runs a two-stage cleaning + analysis pipeline:
@@ -112,20 +112,25 @@ def run_ecg_analysis(file_path, sampling_rate=100):
 # === Begin ECG classification code
 # ================================
 
+# map sampling rates to model files
+MODEL_MAP = {
+    # if sr ≥ 500 Hz, use the high-res model
+    'high': 'best_ecg_resnet_500_weights.h5',
+    # otherwise fallback to default 100 Hz model
+    'default': 'best_ecg_resnet.h5',
+}
+
 # --- 1. Define the Cast layer so that HDF5 restore can find it ---
 @register_keras_serializable()
 class Cast(layers.Layer):
     def __init__(self, dtype, **kwargs):
         super().__init__(**kwargs)
-        # Store the target dtype as a string (e.g., "float32")
         self._target_dtype = tf.dtypes.as_dtype(dtype).name
 
     def call(self, inputs):
-        # Cast inputs to the stored dtype
         return tf.cast(inputs, self._target_dtype)
 
     def get_config(self):
-        # Include 'dtype' in the layer's config so that loading works
         cfg = super().get_config()
         cfg.update({'dtype': self._target_dtype})
         return cfg
@@ -150,48 +155,56 @@ def normalize_signal(sig):
     return (sig - mean) / std
 
 
-# --- 3. Load the model once, with custom_objects for Cast ---
-BASE_DIR = Path(__file__).resolve().parent.parent
-_MODEL_PATH = settings.BASE_DIR / 'ecg' / 'analysis_helper_files' / 'best_ecg_resnet.h5'
-_model = load_model(
-    _MODEL_PATH,
-    custom_objects={'Cast': Cast},
-    compile=False
-)
-
-
-# --- 4. Single-sample prediction from CSV ---
-def predict_from_csv(csv_path, threshold=0.5):
+# --- 3. Single-sample prediction from CSV, dynamic model loading ---
+def predict_from_csv(csv_path, sampling_rate=100.0, threshold=0.5):
     """
-    Reads a 12-lead ECG from a CSV file (expected shape: 1000×12),
-    applies bandpass + normalization, and returns:
-      • probabilities: dict mapping class → prob
-      • predictions:   list of class names whose prob ≥ threshold
-      • raw_binary:    list of 0/1 flags in the same order as classes
+    Reads a 12-lead ECG from a CSV file,
+    applies bandpass + normalization (using sampling_rate), then:
+      • loads the appropriate model weights based on sampling_rate
+      • returns probabilities, predictions, and raw binary mask
     """
     # (a) Load CSV (no header)
     df = pd.read_csv(csv_path, header=None)
     ecg = df.values
-    # Validate shape
-    if ecg.shape != (1000, 12):
-        raise ValueError(f"Expected CSV of shape (1000,12), got {ecg.shape}")
+    n_samples, n_leads = ecg.shape
 
-    # (b) Preprocess: bandpass → normalize → float32
-    filtered = bandpass_filter(ecg)
+    # (b) Validate leads and resample length
+    if n_leads != 12:
+        raise ValueError(f"Expected 12 leads (columns), got {n_leads}")
+    expected_len = int(sampling_rate * 10)  # e.g. 100 Hz→1000 samples; 500 Hz→5000 samples
+    if n_samples != expected_len:
+        ecg = resample(ecg, expected_len, axis=0)
+
+    # (c) Preprocess: bandpass → normalize → float32
+    filtered = bandpass_filter(ecg, fs=sampling_rate)
     normed   = normalize_signal(filtered).astype(np.float32)
 
-    # (c) Add batch dimension: (1, 1000, 12)
-    batch = np.expand_dims(normed, axis=0)
+    # (d) Choose model file by sampling_rate
+    if sampling_rate >= 500:
+        weights_file = MODEL_MAP['high']
+    else:
+        weights_file = MODEL_MAP['default']
 
-    # (d) Predict: model returns a 5-element vector of probabilities
-    probs = _model.predict(batch)[0]           # shape: (5,)
-    preds = (probs >= threshold).astype(int)   # length 5 binary mask
+    # (e) Load model with custom Cast layer
+    model_path = settings.BASE_DIR / 'ecg' / 'analysis_helper_files' / weights_file
+    model = load_model(
+        model_path,
+        custom_objects={'Cast': Cast},
+        compile=False
+    )
 
-    # (e) Map indices → class names
+    # (f) Prepare batch and predict
+    batch = np.expand_dims(normed, axis=0)    # shape: (1, expected_len, 12)
+    probs = model.predict(batch)[0]           # shape: (5,)
+    preds = (probs >= threshold).astype(int)  # binary mask
+
+    # (g) Map indices → class names
     classes = ['NORM', 'MI', 'STTC', 'CD', 'HYP']
     predicted = [cls for cls, p in zip(classes, preds) if p]
 
     return {
+        'model_used':     weights_file,
+        'sampling_rate':  sampling_rate,
         'probabilities': dict(zip(classes, probs.tolist())),
         'predictions':    predicted,
         'raw_binary':     preds.tolist()

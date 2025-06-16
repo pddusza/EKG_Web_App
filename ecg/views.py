@@ -12,25 +12,30 @@ def upload_ecg(request):
             # 1) save the raw signal record
             ecg = form.save(commit=False)
             ecg.owner = request.user
+                        
+            user_sr = form.cleaned_data.get('sampling_rate')
+            if user_sr:
+                ecg.sampling_rate = user_sr
+            
             ecg.save()  # <-- creates a row in ecg_ecgsignal
 
             # 2) run your ML helper
-            stats = run_ecg_analysis(ecg.file.path)
+            stats = run_ecg_analysis(file_path=ecg.file.path, sampling_rate=ecg.sampling_rate )
 
             # 3) run TensorFlow/Keras classification
             try:
-                classification = predict_from_csv(ecg.file.path)
+                classification = predict_from_csv(file_path=ecg.file.path, sampling_rate=ecg.sampling_rate )
                 stats['classification'] = classification
             except Exception as e:
                 stats['classification'] = {'error': str(e)}
 
-            # 4) persist the analysis results
+            # 4) persist the results
+            from .models import AnalysisResult
             AnalysisResult.objects.create(
                 signal=ecg,
                 result_json=stats
             )
 
-            # 5) redirect to history (or wherever you want)
             return redirect('ecg:history')
     else:
         form = UploadECGForm()

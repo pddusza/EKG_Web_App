@@ -159,9 +159,6 @@ def settings_view(request):
    
     return render(request, 'accounts/settings.html')
 
-def your_results_view(request):
-
-    return render(request, 'accounts/your_results.html')
 
 def account_type_view(request):
     return render(request, 'accounts/account_type.html')
@@ -397,7 +394,7 @@ def your_results_view(request):
     if name_filter:
         qs = qs.filter(title__icontains=name_filter)
 
-    # inject ML stats exactly as before
+    # fetch ML stats
     results = []
     for r in qs:
         try:
@@ -409,7 +406,7 @@ def your_results_view(request):
         r.ml_stats = stats
         results.append(r)
 
-    # record_number override
+    # record_number override (no pagination)
     record_number = request.GET.get('record_number')
     if record_number:
         try:
@@ -423,19 +420,27 @@ def your_results_view(request):
         return render(request, 'accounts/your_results.html', {
             'results': results,
             'page_obj': None,
-            'page': None
+            'current_page': None,
+            'offset':       0,
+            'patient_id':   patient_id,
+            'name':         name_filter,
+            'record_number': record_number,
         })
 
     # pagination (3 per page)
-    paginator = Paginator(results, 3)
-    page_obj  = paginator.get_page(request.GET.get('page', 1))
-    offset    = (page_obj.number - 1) * 3
+    paginator   = Paginator(results, 3)
+    page_number = request.GET.get('page', 1)
+    page_obj    = paginator.get_page(page_number)
+    offset      = (page_obj.number - 1) * 3
 
     return render(request, 'accounts/your_results.html', {
         'results':      page_obj.object_list,
         'page_obj':     page_obj,
         'current_page': page_obj.number,
-        'offset':       offset
+        'offset':       offset,
+        'patient_id':   patient_id,
+        'name':         name_filter,
+        'record_number':record_number,
     })
 
 

@@ -236,22 +236,26 @@
     <div class="layout">
         <div class="sidebar">
             <form method="get" action="">
-                <input type="number" name="record_number" placeholder="Filtruj po numerze rekordu" min="1" value="{{ request.GET.record_number }}">
-                <input type="text" name="name" placeholder="Filtruj po nazwie" value="{{ request.GET.name }}">
-                
+                <input type="hidden" name="patient_id" value="{{ patient_id }}">
+                <input type="number" name="record_number" placeholder="Filtruj po numerze rekordu" min="1" value="{{ record_number }}">
+                <input type="text" name="name" placeholder="Filtruj po nazwie" value="{{ name }}">
                 <button type="submit">Filtruj</button>
             </form>
 
             {% if page_obj %}
             <div class="pagination">
+                {# Previous page #}
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.name %}&name={{ request.GET.name }}{% endif %}">←</a>
+                    <a href="?patient_id={{ patient_id }}{% if name %}&name={{ name }}{% endif %}{% if record_number %}&record_number={{ record_number }}{% endif %}&page={{ page_obj.previous_page_number }}">←</a>
                 {% else %}
                     <span class="disabled">←</span>
                 {% endif %}
-                <span>Strona {{ page_obj.number }}</span>
+
+                <span>Strona {{ current_page }}</span>
+
+                {# Next page #}
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.name %}&name={{ request.GET.name }}{% endif %}">→</a>
+                    <a href="?patient_id={{ patient_id }}{% if name %}&name={{ name }}{% endif %}{% if record_number %}&record_number={{ record_number }}{% endif %}&page={{ page_obj.next_page_number }}">→</a>
                 {% else %}
                     <span class="disabled">→</span>
                 {% endif %}
@@ -287,8 +291,8 @@
                         {% endif %}
 
                         <a class="download-btn" href="{{ r.csv_file.url }}" download>Pobierz plik</a>
-                        <a class="download-btn" href="{% url 'accounts:download_my_excel_results' r.id %}" >Pobierz wyniki (CSV)</a>
-                        <a class="download-btn" href="{% url 'accounts:download_my_pdf_results' r.id %}" >Pobierz wyniki (PDF)</a>
+                        <a class="download-btn" href="{% url 'accounts:download_my_excel_results' r.id %}" >Pobierz CSV</a>
+                        <a class="download-btn" href="{% url 'accounts:download_my_pdf_results' r.id %}" >Pobierz PDF</a>
                     </div>
 
                     {% if r.ml_stats and r.ml_stats.classification and not r.ml_stats.classification.error %}
