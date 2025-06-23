@@ -5,7 +5,10 @@ from django.contrib.auth         import authenticate, login as auth_login, logou
 from django.contrib.auth.forms   import AuthenticationForm, UserCreationForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from .forms                      import CustomUserCreationForm, CSVResultForm, ProfileForm
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth import update_session_auth_hash
+
+from .forms                      import CustomUserCreationForm, CSVResultForm, ProfileForm, UserSettingsForm
 from .models import CSVResult
 from ecg.models            import ECGSignal, AnalysisResult
 from ecg.ml                import run_ecg_analysis, predict_from_csv
@@ -149,9 +152,33 @@ def _crop_and_save(profile, offsetX, offsetY, scale):
 
 
 
+@login_required
 def settings_view(request):
-   
-    return render(request, 'accounts/settings.html')
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+        if form_type == 'email':
+            u_form = UserSettingsForm(request.POST, instance=request.user)
+            p_form = SetPasswordForm(request.user)
+            if u_form.is_valid():
+                u_form.save()
+                messages.success(request, "Adres e-mail został zaktualizowany.")
+                return redirect('accounts:settings')
+        elif form_type == 'password':
+            u_form = UserSettingsForm(instance=request.user)
+            p_form = SetPasswordForm(request.user, request.POST)
+            if p_form.is_valid():
+                user = p_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Hasło zostało zmienione.")
+                return redirect('accounts:settings')
+    else:
+        u_form = UserSettingsForm(instance=request.user)
+        p_form = SetPasswordForm(request.user)
+
+    return render(request, 'accounts/settings.html', {
+        'u_form': u_form,
+        'p_form': p_form,
+    })
 
 
 def account_type_view(request):

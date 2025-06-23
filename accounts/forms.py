@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import CSVResult, Profile
@@ -10,6 +11,16 @@ ICON_CHOICES = [
     ('icon3.jpg', 'Ikona 3'),
     ('icon4.jpg', 'Ikona 4'),
 ]
+
+
+User = get_user_model()
+
+class UserSettingsForm(forms.ModelForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['email']
 
 
 class CustomUserCreationForm(UserCreationForm):
