@@ -201,13 +201,14 @@ def register_patient_view(request):
             profile.save()
 
             upload = form.cleaned_data['avatar_upload']
-            choice = form.cleaned_data['avatar_choice']
+            choice = form.cleaned_data['avatar_choice'] or 'default.png'
             if upload:
                 raw = upload.read()
                 ext = os.path.splitext(upload.name)[1]
             else:
-                
-                stock_path = os.path.join(settings.MEDIA_ROOT, 'avatars', choice)
+                avatars_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+                os.makedirs(avatars_dir, exist_ok=True)
+                stock_path = os.path.join(avatars_dir, choice)
                 with open(stock_path, 'rb') as f:
                     raw = f.read()
                 ext = os.path.splitext(choice)[1]
@@ -252,12 +253,14 @@ def register_doctor_view(request):
             profile.save()
 
             upload = form.cleaned_data['avatar_upload']
-            choice = form.cleaned_data['avatar_choice']
+            choice = form.cleaned_data['avatar_choice'] or 'default.png'
             if upload:
                 raw = upload.read()
                 ext = os.path.splitext(upload.name)[1]
             else:
-                stock_path = os.path.join(settings.MEDIA_ROOT, 'avatars', choice)
+                avatars_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+                os.makedirs(avatars_dir, exist_ok=True)
+                stock_path = os.path.join(avatars_dir, choice)
                 with open(stock_path, 'rb') as f:
                     raw = f.read()
                 ext = os.path.splitext(choice)[1]
